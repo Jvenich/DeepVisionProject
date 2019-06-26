@@ -108,3 +108,11 @@ class classic_experiment:
         fm.save_model(self.model, '{}'.format(self.modelname))
         fm.save_weight(self.model, '{}'.format(self.modelname))
         fm.save_variable([self.train_acc_log, self.test_acc_log], '{}'.format(self.modelname))
+
+    def plot_accuracy(self):
+        """
+        Plot train and test accuracy during training.
+
+        :return:
+        """
+        

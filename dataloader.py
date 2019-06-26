@@ -51,6 +51,7 @@ def get_loader(dataset, batch_size, pin_memory=True, drop_last=True):
     :param dataset: dataset for which a loader will be created
     :param batch_size: size of the batch the loader will load during training
     :param pin_memory: pin_memory argument for pytorch dataloader, will be simply forwarded
+    :param drop_last: If true, drop the last incomplete batch, if the dataset is not divisible by the batch size
     :return: loader
     """
 

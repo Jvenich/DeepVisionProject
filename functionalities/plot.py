@@ -22,6 +22,7 @@ def plot(x, y, x_label, y_label, plot_label, title, filename, sub_dim=None, figs
     :param sub_dim: dimensions of subplots. Only required, if the dimension of both x and y are 2.
     :param figsize: the size of the generated plot
     :param font_size: font size of labels
+    :param y_log_scale: y axis will have log scale instead of linear
     :return: None
     """
 
@@ -59,7 +60,7 @@ def plot(x, y, x_label, y_label, plot_label, title, filename, sub_dim=None, figs
 
         for i, y_part in enumerate(y):
             ax.plot(x, y_part, label=plot_label[i])
-            
+
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
         if y_log_scale == True:

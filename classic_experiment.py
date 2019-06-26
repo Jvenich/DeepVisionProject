@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from functionalities import dataloader as dl
 from functionalities import filemanager as fm
+from functionalities import plot as pl
 
 class classic_experiment:
     """
@@ -109,10 +110,17 @@ class classic_experiment:
         fm.save_weight(self.model, '{}'.format(self.modelname))
         fm.save_variable([self.train_acc_log, self.test_acc_log], '{}'.format(self.modelname))
 
-    def plot_accuracy(self):
+
+    def plot_accuracy(self, sub_dim=None, figsize=(15, 10), font_size=24, y_log_scale=False):
         """
         Plot train and test accuracy during training.
 
-        :return:
+        :param sub_dim: dimensions of subplots. Only required, if the dimension of both x and y are 2.
+        :param figsize: the size of the generated plot
+        :param font_size: font size of labels
+        :param y_log_scale: y axis will have log scale instead of linear
         """
-        
+
+        pl.plot([x for x in range(1, self.num_epoch+1)], [self.train_acc_log, self.test_acc_log], 'Epoch', 'Accuracy',
+                ['train', 'test'], "Train and Test Accuracy History {}".format(self.modelname),
+                "train_test_acc_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)

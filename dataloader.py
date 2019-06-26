@@ -42,3 +42,18 @@ def load_cifar():
     classes = ['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
     return trainset, testset, classes
+
+
+def get_loader(dataset, batch_size, pin_memory=True, drop_last=True):
+    """
+    Create loader for a given dataset.
+
+    :param dataset: dataset for which a loader will be created
+    :param batch_size: size of the batch the loader will load during training
+    :param pin_memory: pin_memory argument for pytorch dataloader, will be simply forwarded
+    :return: loader
+    """
+
+    loader = torch.utils.data.DataLoader(dataset, pin_memory=pin_memory, batch_size=batch_size, drop_last=drop_last)
+
+    return loader

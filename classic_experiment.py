@@ -1,11 +1,16 @@
-import dataloader as dl
+import torch
+from torch import nn
+from functionalities import dataloader as dl
+from functionalities import filemanager as fm
 
 class classic_experiment:
     """
     Class for training classical models.
     """
 
-    def __init__(self, num_epoch, batch_size, lr_init, milesstones, get_model, modelname, device='cpu'):
+
+    def __init__(self, num_epoch, batch_size, lr_init, milesstones, get_model, modelname, device='cpu',
+                 weight_decay=1e-5):
         """
         Init class with pretraining setup.
 
@@ -16,20 +21,90 @@ class classic_experiment:
         :param get_model: function that returns a model for training
         :param modelname: model name under which the model will be saved
         :param device: device on which to do the computation (CPU or CUDA). Please use get_device() to get device
-        variable, if using multiple GPU's. Default: cpu
+        variable, if using multiple GPU's. Default:
+        :param weight_decay: weight decay (L2 penalty) for adam optimizer
         """
         self.num_epoch = num_epoch
         self.batch_size = batch_size
-        self.lr_init = lr_init
-        self.milestones = milesstones
-        self.get_model = get_model
         self.modelname = modelname
         self.device = device
 
+        self.model = get_model.to(self.device)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr_init, weight_decay=weight_decay)
+        self.criterion = nn.CrossEntropyLoss()
+        self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=milesstones, gamma=0.1)
+
+
     def get_dataset(self, dataset, pin_memory=True, drop_last=True):
+        """
+        Init train-, testset and train-, testloader for experiment.
+
+        :param dataset: string that describe which dataset to use for training. Current Options: "mnist", "cifar"
+        :param pin_memory: If True, the data loader will copy tensors into CUDA pinned memory before returning them
+        :param drop_last: If true, drop the last incomplete batch, if the dataset is not divisible by the batch size
+        """
         if dataset == "mnist":
             self.trainset, self.testset, self.classes = dl.load_mnist()
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
+        elif dataset == "cifar":
+            self.trainset, self.testset, self.classes = dl.load_cifar()
+            self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
+            self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
         else:
             print("The requested dataset is not implemented yet.")
+
+
+    def get_accuracy(self, loader):
+        """
+        Evaluate accuracy of current model on given loader.
+
+        :param loader: pytorch loader for a dataset
+        :return:
+        """
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for data in loader:
+                images, labels = data
+                images, labels = images.to(self.device), labels.to(self.device)
+                outputs = self.model(images)
+                _, predicted = torch.max(outputs)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+        return 100 * correct / total
+
+
+    def train(self):
+        """
+        Train model.
+
+        """
+
+        self.train_acc_log = []
+        self.test_acc_log = []
+
+        for epoch in range(self.num_epoch):
+            self.scheduler.step()
+            self.model.train()
+
+            for data in self.trainloader:
+                img, labels = data
+                img, labels = img.to(self.device), labels.to(self.device)
+                output = self.model(img)
+                loss = self.criterion(output, labels)
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+
+            self.model.eval()
+            print('epoch [{}/{}], train loss:{:.4f}'.format(epoch + 1, self.num_epoch, loss.data.item()))
+            self.train_acc_log.append(self.get_accuracy(self.trainloader))
+            self.test_acc_log.append(self.get_accuracy(self.testloader))
+
+        print(80 * "-")
+        print("Final Test Accuracy:", self.test_acc_log[-1])
+
+        fm.save_model(self.model, '{}'.format(self.modelname))
+        fm.save_weight(self.model, '{}'.format(self.modelname))
+        fm.save_variable([self.train_acc_log, self.test_acc_log], '{}'.format(self.modelname))

@@ -1,5 +1,5 @@
 from experiment import classic_experiment as ce
-from architecture import classic_architecture as ca
+from architecture import classic_architectures as ca
 from functionalities import gpu
 
 if __name__ == "__main__":

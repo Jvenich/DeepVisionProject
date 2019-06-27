@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from functionalities import dataloader as dl
 
 
 class inn_experiment:

@@ -79,7 +79,6 @@ class classic_experiment:
     def train(self):
         """
         Train model.
-
         """
 
         self.train_acc_log = []

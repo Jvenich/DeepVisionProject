@@ -29,6 +29,7 @@ class inn_experiment:
         self.device = device
 
         self.model = get_model().to(self.device)
+
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr_init, weight_decay=weight_decay)
         self.criterion = nn.CrossEntropyLoss()
         self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=milesstones, gamma=0.1)
@@ -36,3 +37,12 @@ class inn_experiment:
         optimizer = torch.optim.Adam(model_params, lr=lr_init, betas=(0.8, 0.8), eps=1e-04, weight_decay=l2_reg)
 
         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.1)
+
+
+    def init_param(self, sigma=0.1):
+        for key, param in self.model.named_parameters():
+            split = key.split('.')
+            if param.requires_grad:
+                param.data = sigma * torch.randn(param.data.shape).cuda()
+                if split[3][-1] == '3':  # last convolution in the coeff func
+                    param.data.fill_(0.)

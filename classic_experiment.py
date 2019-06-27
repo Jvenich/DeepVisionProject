@@ -10,7 +10,7 @@ class classic_experiment:
     """
 
 
-    def __init__(self, num_epoch, batch_size, lr_init, milesstones, get_model, modelname, device='cpu',
+    def __init__(self, num_epoch, batch_size, lr_init, milestones, get_model, modelname, device='cpu',
                  weight_decay=1e-5):
         """
         Init class with pretraining setup.
@@ -18,7 +18,7 @@ class classic_experiment:
         :param num_epoch: number of training epochs
         :param batch_size: Batch Size to use during training.
         :param lr_init: Starting learning rate. Will be decrease with adaptive learning.
-        :param milesstones: list of training epochs at which the learning rate will be reduce
+        :param milestones: list of training epochs at which the learning rate will be reduce
         :param get_model: function that returns a model for training
         :param modelname: model name under which the model will be saved
         :param device: device on which to do the computation (CPU or CUDA). Please use get_device() to get device
@@ -33,7 +33,7 @@ class classic_experiment:
         self.model = get_model().to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr_init, weight_decay=weight_decay)
         self.criterion = nn.CrossEntropyLoss()
-        self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=milesstones, gamma=0.1)
+        self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=milestones, gamma=0.1)
 
 
     def get_dataset(self, dataset, pin_memory=True, drop_last=True):

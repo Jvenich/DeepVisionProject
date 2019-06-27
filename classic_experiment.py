@@ -6,7 +6,7 @@ from functionalities import plot as pl
 
 class classic_experiment:
     """
-    Class for training classical models.
+    Class for training classical models
     """
 
 
@@ -22,7 +22,7 @@ class classic_experiment:
         :param get_model: function that returns a model for training
         :param modelname: model name under which the model will be saved
         :param device: device on which to do the computation (CPU or CUDA). Please use get_device() to get device
-        variable, if using multiple GPU's. Default:
+        variable, if using multiple GPU's.
         :param weight_decay: weight decay (L2 penalty) for adam optimizer
         """
         self.num_epoch = num_epoch
@@ -30,7 +30,7 @@ class classic_experiment:
         self.modelname = modelname
         self.device = device
 
-        self.model = get_model.to(self.device)
+        self.model = get_model().to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr_init, weight_decay=weight_decay)
         self.criterion = nn.CrossEntropyLoss()
         self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=milesstones, gamma=0.1)

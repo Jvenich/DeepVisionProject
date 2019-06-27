@@ -25,4 +25,4 @@ class mnist_model(nn.Module): # input: 1, 32, 32
         h4 = self.fc1(h3)
         h5 = self.fc2(h4)
 
-        return F.log_softmax(x, dim=1)
+        return F.log_softmax(h5, dim=1)

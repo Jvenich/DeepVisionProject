@@ -1,5 +1,6 @@
+import numpy as np
 import torch
-from torch import nn
+from functionalities import inn_loss as il
 from functionalities import dataloader as dl
 from tqdm import tqdm_notebook as tqdm
 
@@ -41,7 +42,7 @@ class inn_experiment:
 
         self.optimizer = torch.optim.Adam(self.model_params, lr=lr_init, betas=(0.8, 0.8), eps=1e-04,
                                           weight_decay=weight_decay)
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = il.INN_loss()
         self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=milestones, gamma=0.1)
 
 
@@ -83,6 +84,8 @@ class inn_experiment:
             self.scheduler.step()
             self.model.train()
 
+            losses = np.zeros(5, dtype=np.double)
+
             print("Epoch: {}",format(epoch + 1))
             print("Training:")
 
@@ -95,8 +98,19 @@ class inn_experiment:
                 lat_img = self.model(inputs)
                 lat_shape = lat_img.shape
                 lat_img = lat_img.view(lat_img.size(0), -1)
-                _, predicted = torch.max(lat_img[:, :self.num_classes], 1)
-                lat_img_mod = torch.cat([])
+                binary_label = lat_img.new_zeros(lat_img.size(0), self.num_classes)
+                idx = torch.arange(labels.size(0), dtype=torch.long)
+                binary_label[idx, labels] = 1
+                lat_img_mod = torch.cat([binary_label, lat_img[:, self.num_classes:]])
+                lat_img_mod = lat_img_mod.view(lat_shape)
+                output = self.model(lat_img_mod, rev=True)
+                batch_loss = self.criterion(inputs, lat_img, output, labels)
+                batch_loss[0].backward()
+                self.optimizer.step()
+
+                for i in range(len(batch_loss)):
+                    losses[i] += batch_loss[i].item()
+
 
 
 

@@ -21,6 +21,6 @@ class INN_loss(nn.Module):
         l_x = self.a_input * loss.MMD_multiscale(z, z_)
         l_rec = self.a_rec * loss.l1_loss(z, z_)
 
-        l = l_y + l_z + l_x
+        l = l_y + l_z + l_x + l_rec
 
-        return [l, l_y, l_z, l_x]
+        return [l, l_y, l_z, l_x, l_rec]

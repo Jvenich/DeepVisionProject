@@ -83,6 +83,8 @@ class classic_experiment:
 
         self.train_acc_log = []
         self.test_acc_log = []
+        self.train_loss_log = []
+        self.test_loss_log = []
 
         for epoch in range(self.num_epoch):
             self.scheduler.step()
@@ -101,6 +103,7 @@ class classic_experiment:
             print('epoch [{}/{}], train loss:{:.4f}'.format(epoch + 1, self.num_epoch, loss.data.item()))
             self.train_acc_log.append(self.get_accuracy(self.trainloader))
             self.test_acc_log.append(self.get_accuracy(self.testloader))
+
 
         print(80 * "-")
         print("Final Test Accuracy:", self.test_acc_log[-1])

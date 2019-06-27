@@ -1,5 +1,18 @@
 import torch
 
+
+def l1_loss(x, y):
+    return torch.mean(torch.abs(x-y))
+
+
+def l2_loss(x, y):
+    return torch.mean((x-y)**2)
+
+
+def feat_loss(x, y, feat_model):
+    return torch.mean(torch.abs(feat_model(x) - feat_model(y)))
+
+
 def MMD_multiscale(x, y, device):
     x, y = x.to(device), y.to(device)
     xx, yy, zz = torch.mm(x,x.t()), torch.mm(y,y.t()), torch.mm(x,y.t())

@@ -19,6 +19,7 @@ class INN_loss(nn.Module):
         gauss = v.new_empty((v.size(0), v.size(1) - self.num_classes)).normal_()
         l_z = self.a_noise * loss.MMD_multiscale(v[:, self.num_classes:], gauss, self.device)
         l_x = self.a_input * loss.MMD_multiscale(z, z_)
+        l_rec = self.a_rec * loss.l1_loss(z, z_)
 
         l = l_y + l_z + l_x
 

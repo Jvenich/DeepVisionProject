@@ -70,7 +70,7 @@ class classic_experiment:
                 images, labels = data
                 images, labels = images.to(self.device), labels.to(self.device)
                 outputs = self.model(images)
-                _, predicted = torch.max(outputs)
+                _, predicted = torch.max(outputs, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
         return 100 * correct / total
@@ -78,7 +78,7 @@ class classic_experiment:
 
     def train(self):
         """
-        Train model.
+        Train classical model.
         """
 
         self.train_acc_log = []

@@ -14,7 +14,7 @@ class inn_experiment:
 
 
     def __init__(self, num_epoch, batch_size, lr_init, milestones, get_model, modelname, device='cpu',
-                 weight_decay=1e-6):
+                 weight_decay=1e-6, a_class=1, a_noise=1, a_input=1):
         """
         Init class with pretraining setup.
 
@@ -32,6 +32,9 @@ class inn_experiment:
         self.batch_size = batch_size
         self.modelname = modelname
         self.device = device
+        self.a_class = a_class
+        self.a_noise = a_noise
+        self.a_input = a_input
 
         self.model = get_model().to(self.device)
         self.init_param()
@@ -43,7 +46,6 @@ class inn_experiment:
 
         self.optimizer = torch.optim.Adam(self.model_params, lr=lr_init, betas=(0.8, 0.8), eps=1e-04,
                                           weight_decay=weight_decay)
-        self.criterion = il.INN_loss()
         self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=milestones, gamma=0.1)
 
 
@@ -58,11 +60,13 @@ class inn_experiment:
         if dataset == "mnist":
             self.trainset, self.testset, self.classes = dl.load_mnist()
             self.num_classes = len(self.classes)
+            self.criterion = il.INN_loss(self.num_classes, self.a_class, self.a_noise, self.a_input, self.device)
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
         elif dataset == "cifar":
             self.trainset, self.testset, self.classes = dl.load_cifar()
             self.num_classes = len(self.classes)
+            self.criterion = il.INN_loss(self.num_classes, self.a_class, self.a_noise, self.a_input, self.device)
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
         else:

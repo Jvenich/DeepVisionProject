@@ -13,7 +13,7 @@ class inn_experiment:
     """
 
 
-    def __init__(self, num_epoch, batch_size, lr_init, milestones, get_model, modelname, num_classes, device='cpu',
+    def __init__(self, num_epoch, batch_size, lr_init, milestones, get_model, modelname, device='cpu',
                  weight_decay=1e-6):
         """
         Init class with pretraining setup.
@@ -31,7 +31,6 @@ class inn_experiment:
         self.num_epoch = num_epoch
         self.batch_size = batch_size
         self.modelname = modelname
-        self.num_classes = num_classes
         self.device = device
 
         self.model = get_model().to(self.device)
@@ -58,10 +57,12 @@ class inn_experiment:
         """
         if dataset == "mnist":
             self.trainset, self.testset, self.classes = dl.load_mnist()
+            self.num_classes = len(self.classes)
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
         elif dataset == "cifar":
             self.trainset, self.testset, self.classes = dl.load_cifar()
+            self.num_classes = len(self.classes)
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
         else:

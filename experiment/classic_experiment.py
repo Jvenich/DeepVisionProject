@@ -84,14 +84,17 @@ class classic_experiment:
 
         self.train_acc_log = []
         self.test_acc_log = []
-        self.train_loss_log = []
-        self.test_loss_log = []
+        self.loss_log = []
 
         for epoch in range(self.num_epoch):
             self.scheduler.step()
             self.model.train()
 
-            print("Epoch: {}", format(epoch + 1))
+            print()
+            print(80 * '-')
+            print()
+
+            print("Epoch: {}".format(epoch + 1))
             print("Training:")
 
             for data in tqdm(self.trainloader):
@@ -106,17 +109,21 @@ class classic_experiment:
             print("Evaluating:")
             self.model.eval()
 
+            print("Trainset:")
             train_acc = self.get_accuracy(self.trainloader)
+            print("Testset:")
             test_acc = self.get_accuracy(self.testloader)
 
-            print('epoch [{}/{}] \t train loss: {:.3f} \t train acc: {:.3f} \t test acc: {:.3f}'.format(
-                epoch + 1, self.num_epoch, loss.data.item(), train_acc, test_acc))
+            print('loss: {:.3f} \t train acc: {:.3f} \t test acc: {:.3f}'.format(loss.data.item(), train_acc, test_acc))
 
             self.train_acc_log.append(train_acc)
-            self.test_acc_log.append(train_acc)
+            self.test_acc_log.append(test_acc)
+            self.loss_log.append(loss)
 
-
-        print(80 * "-")
+        print()
+        print(80 * "#")
+        print(80 * "#")
+        print()
         print("Final Test Accuracy:", self.test_acc_log[-1])
 
         fm.save_model(self.model, '{}'.format(self.modelname))
@@ -149,6 +156,6 @@ class classic_experiment:
         :param y_log_scale: y axis will have log scale instead of linear
         """
 
-        pl.plot([x for x in range(1, self.num_epoch+1)], [self.train_loss_log, self.test_loss_log], 'Epoch', 'Loss',
+        pl.plot([x for x in range(1, self.num_epoch+1)], self.loss_log, 'Epoch', 'Loss',
                 ['train', 'test'], "Train and Test Loss History {}".format(self.modelname),
                 "train_test_loss_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)

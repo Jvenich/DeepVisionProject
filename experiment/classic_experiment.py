@@ -91,6 +91,9 @@ class classic_experiment:
             self.scheduler.step()
             self.model.train()
 
+            print("Epoch: {}", format(epoch + 1))
+            print("Training:")
+
             for data in tqdm(self.trainloader):
                 img, labels = data
                 img, labels = img.to(self.device), labels.to(self.device)
@@ -100,10 +103,17 @@ class classic_experiment:
                 loss.backward()
                 self.optimizer.step()
 
+            print("Evaluating:")
             self.model.eval()
-            print('epoch [{}/{}], train loss:{:.4f}'.format(epoch + 1, self.num_epoch, loss.data.item()))
-            self.train_acc_log.append(self.get_accuracy(self.trainloader))
-            self.test_acc_log.append(self.get_accuracy(self.testloader))
+
+            train_acc = self.get_accuracy(self.trainloader)
+            test_acc = self.get_accuracy(self.testloader)
+
+            print('epoch [{}/{}] \t train loss: {:.3f} \t train acc: {:.3f} \t test acc: {:.3f}'.format(
+                epoch + 1, self.num_epoch, loss.data.item(), train_acc, test_acc))
+
+            self.train_acc_log.append(train_acc)
+            self.test_acc_log.append(train_acc)
 
 
         print(80 * "-")
@@ -139,6 +149,6 @@ class classic_experiment:
         :param y_log_scale: y axis will have log scale instead of linear
         """
 
-        pl.plot([x for x in range(1, self.num_epoch+1)], [self.train_loss_log, self.test_loss_log], 'Epoch', 'Accuracy',
-                ['train', 'test'], "Train and Test Accuracy History {}".format(self.modelname),
-                "train_test_acc_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)
+        pl.plot([x for x in range(1, self.num_epoch+1)], [self.train_loss_log, self.test_loss_log], 'Epoch', 'Loss',
+                ['train', 'test'], "Train and Test Loss History {}".format(self.modelname),
+                "train_test_loss_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)

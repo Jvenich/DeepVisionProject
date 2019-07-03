@@ -2,6 +2,8 @@ import numpy as np
 import torch
 from functionalities import inn_loss as il
 from functionalities import dataloader as dl
+from functionalities import filemanager as fm
+from functionalities import plot as pl
 from tqdm import tqdm_notebook as tqdm
 
 
@@ -91,14 +93,13 @@ class inn_experiment:
         Train INN model.
         """
 
-        self.tot_train_log = []
-        self.tot_test_log = []
-        self.lx_train_log = []
-        self.lx_test_log = []
-        self.ly_train_log = []
-        self.ly_test_log = []
-        self.lz_train_log = []
-        self.lz_test_log = []
+        self.train_acc_log = []
+        self.test_acc_log = []
+        self.tot_loss_log = []
+        self.lx_loss_log = []
+        self.ly_loss_log = []
+        self.lz_loss_log = []
+        self.lrec_loss_log = []
 
         for epoch in range(self.num_epoch):
             self.scheduler.step()
@@ -131,158 +132,32 @@ class inn_experiment:
                 for i in range(len(batch_loss)):
                     losses[i] += batch_loss[i].item()
 
+            print("Evaluating:")
             self.model.eval()
 
+            train_acc = self.get_accuracy(self.trainloader)
+            test_acc = self.get_accuracy(self.testloader)
 
-
-
-
-
-        for i, data in enumerate(tqdm(trainloader), 0):
-            criterion.update_num_step(num_step)
-            num_step += 1
-            img, labels = data
-            img, labels = img.to(device), labels.to(device)
-
-            optimizer.zero_grad()
-
-            lat_img = model(img)
-            lat_shape = lat_img.shape
-            lat_img = lat_img.view(lat_img.size(0), -1)
-            else:
-                lat_img_mod = torch.cat([lat_img[:, :latent_dim], lat_img.new_zeros((lat_img[:, latent_dim:]).shape)],
-                                        dim=1)
-
-            lat_img_mod = lat_img_mod.view(lat_shape)
-
-            output = model(lat_img_mod, rev=True)
-
-            if conditional:
-                batch_loss = criterion(img, lat_img, output, labels, binary_label)
-            elif use_label:
-                batch_loss = criterion(img, lat_img, output, labels)
-            else:
-                batch_loss = criterion(img, lat_img, output)
-
-            batch_loss[0].backward()
-
-            optimizer.step()
-
-            for i in range(len(batch_loss)):
-                losses[i] += batch_loss[i].item()
-
-        correct = correct * 100. / len(trainloader.dataset)
-        losses /= len(trainloader)
-        tot_loss_log.append(losses[0])
-        rec_loss_log.append(losses[1])
-        dist_loss_log.append(losses[2])
-        spar_loss_log.append(losses[3])
-        disen_loss_log.append(losses[4])
-        if len(losses) == 6:
-            disc_loss_log.append(losses[5])
-            print(
-                'Loss: {:.3f} \t L_rec: {:.3f} \t L_dist: {:.3f} \t L_spar: {:.3f} \t L_disen: {:.3f} \t L_disc: {:.3f}'.format(
-                    losses[0], losses[1], losses[2], losses[3], losses[4], losses[5]))
-            print('Train Accuracy: {:.1f}'.format(correct))
-        else:
-            print('Loss: {:.3f} \t L_rec: {:.3f} \t L_dist: {:.3f} \t L_spar: {:.3f} \t L_disen: {:.3f}'.format(
+            print("Loss: {:.3f} \t L_y: {:.3f} \t L_z: {:.3f} \t L_x: {:.3f} \t L_rec: {:.3f}".format(
                 losses[0], losses[1], losses[2], losses[3], losses[4]))
+            print("Train_acc: {:.3f} \t Test_acc: {:.3f}".format(train_acc, test_acc))
 
-        if validloader is not None:
-            print('\n')
-            print('Compute and record loss on validation set')
-            valid_loss = ev.get_loss(validloader, model, criterion, latent_dim, tracker, conditional, disc_lst,
-                                     use_label, device)
-            tot_valid_loss_log.append(valid_loss[0])
-            rec_valid_loss_log.append(valid_loss[1])
-            dist_valid_loss_log.append(valid_loss[2])
-            spar_valid_loss_log.append(valid_loss[3])
-            disen_valid_loss_log.append(valid_loss[4])
-            if len(valid_loss) == 6:
-                disc_valid_loss_log.append(valid_loss[5])
-                print(
-                    'Loss: {:.3f} \t L_rec: {:.3f} \t L_dist: {:.3f} \t L_spar: {:.3f} \t L_disen: {:.3f} \t L_disc: {:.3f}'.format(
-                        valid_loss[0], valid_loss[1], valid_loss[2], valid_loss[3], valid_loss[4], valid_loss[5]))
-            else:
-                print('Loss: {:.3f} \t L_rec: {:.3f} \t L_dist: {:.3f} \t L_spar: {:.3f} \t L_disen: {:.3f}'.format(
-                    valid_loss[0], valid_loss[1], valid_loss[2], valid_loss[3], valid_loss[4]))
+            self.train_acc_log.append(train_acc)
+            self.test_acc_log.append(test_acc)
+            self.tot_loss_log.append(losses[0])
+            self.ly_loss_log.append(losses[1])
+            self.lz_loss_log.append(losses[2])
+            self.lx_loss_log.append(losses[3])
+            self.lrec_loss_log.append(losses[4])
 
-            print('latent image mean: {:.3f} \t latent image std: {:.3f}'.format(tracker.mu, tracker.std))
+        print(80 * "-")
+        print("Final Test Accuracy:", self.test_acc_log[-1])
 
-            if valid_loss[0] <= min_loss:
-                last_best_epoch = best_epoch
-                best_epoch = epoch + 1
-                min_loss = valid_loss[0]
-                fm.save_model(model, "{}_{}_best".format(modelname, best_epoch))
-                fm.save_weight(model, "{}_{}_best".format(modelname, best_epoch))
-                if last_best_epoch != 0:
-                    fm.delete_file("models", "{}_{}_best".format(modelname, last_best_epoch))
-                    fm.delete_file("weights", "{}_{}_best".format(modelname, last_best_epoch))
-
-        if testloader is not None:
-            print('\n')
-            print('Compute and record loss on test set:')
-            test_loss = ev.get_loss(testloader, model, criterion, latent_dim, tracker, conditional, disc_lst, use_label,
-                                    device)
-            tot_test_loss_log.append(test_loss[0])
-            rec_test_loss_log.append(test_loss[1])
-            dist_test_loss_log.append(test_loss[2])
-            spar_test_loss_log.append(test_loss[3])
-            disen_test_loss_log.append(test_loss[4])
-            if len(test_loss) == 6:
-                disc_test_loss_log.append(test_loss[5])
-                print(
-                    'Loss: {:.3f} \t L_rec: {:.3f} \t L_dist: {:.3f} \t L_spar: {:.3f} \t L_disen: {:.3f} \t L_disc: {:.3f}'.format(
-                        test_loss[0], test_loss[1], test_loss[2], test_loss[3], test_loss[4], test_loss[5]))
-            else:
-                print('Loss: {:.3f} \t L_rec: {:.3f} \t L_dist: {:.3f} \t L_spar: {:.3f} \t L_disen: {:.3f}'.format(
-                    test_loss[0], test_loss[1], test_loss[2], test_loss[3], test_loss[4]))
-
-            print('latent image mean: {:.3f} \t latent image std: {:.3f}'.format(tracker.mu, tracker.std))
-
-        if epoch % num_epoch_save == 0 or epoch == (num_epoch - 1):
-            pl.plot_diff(model, testloader, latent_dim, device, num_img, grid_row_size,
-                         filename=modelname + "_{}".format(epoch))
-
-        print('\n')
-        print('-' * 80)
-        print('\n')
-
-    if validloader is not None:
-        print("Lowest Validation Loss: {:3f} was achieved at epoch: {}".format(min_loss, best_epoch))
-
-    print("Finished Training")
-
-    if subdir is None:
-        subdir = modelname
-
-    if save_model:
-        model.to('cpu')
-        fm.save_model(model, "{}_{}".format(modelname, num_epoch), subdir)
-        fm.save_weight(model, "{}_{}".format(modelname, num_epoch), subdir)
-
-    if save_variable:
-        fm.save_variable([tot_loss_log, tot_valid_loss_log, tot_test_loss_log],
-                         "total_loss_{}_{}".format(modelname, num_epoch), subdir)
-        fm.save_variable([rec_loss_log, rec_valid_loss_log, rec_test_loss_log],
-                         "reconstruction_loss_{}_{}".format(modelname, num_epoch), subdir)
-        fm.save_variable([dist_loss_log, dist_valid_loss_log, dist_test_loss_log],
-                         "distribution_loss_{}_{}".format(modelname, num_epoch), subdir)
-        fm.save_variable([spar_loss_log, spar_valid_loss_log, spar_test_loss_log],
-                         "sparsity_loss_{}_{}".format(modelname, num_epoch), subdir)
-        fm.save_variable([disen_loss_log, disen_valid_loss_log, disen_test_loss_log],
-                         "disentanglement_loss_{}_{}".format(modelname, num_epoch), subdir)
-        fm.save_variable([disc_loss_log, disc_valid_loss_log, disc_test_loss_log],
-                         "discrete_loss_{}_{}".format(modelname, num_epoch), subdir)
-        fm.save_variable([tot_loss_log, rec_loss_log, dist_loss_log, spar_loss_log, disen_loss_log, disc_loss_log],
-                         "train_loss_{}_{}".format(modelname, num_epoch), subdir)
-        fm.save_variable([tot_valid_loss_log, rec_valid_loss_log, dist_valid_loss_log, spar_valid_loss_log,
-                          disen_valid_loss_log, disc_loss_log], "validation_loss_{}_{}".format(modelname, num_epoch),
-                         subdir)
-        fm.save_variable([tot_test_loss_log, rec_test_loss_log, dist_test_loss_log, spar_test_loss_log,
-                          disen_test_loss_log, disc_loss_log], "test_loss_{}_{}".format(modelname, num_epoch), subdir)
-
-    return model
+        fm.save_model(self.model, '{}'.format(self.modelname))
+        fm.save_weight(self.model, '{}'.format(self.modelname))
+        fm.save_variable([self.train_acc_log, self.test_acc_log], '{}_acc'.format(self.modelname))
+        fm.save_variable([self.tot_loss_log, self.ly_loss_log, self.lz_loss_log, self.lx_loss_log, self.lrec_loss_log],
+                         '{}_loss'.format(self.modelname))
 
 
     def init_param(self, sigma=0.1):
@@ -298,3 +173,34 @@ class inn_experiment:
                 param.data = sigma * torch.randn(param.data.shape).cuda()
                 if split[3][-1] == '3':  # last convolution in the coeff func
                     param.data.fill_(0.)
+
+
+    def plot_accuracy(self, sub_dim=None, figsize=(15, 10), font_size=24, y_log_scale=False):
+        """
+        Plot train and test accuracy during training.
+
+        :param sub_dim: dimensions of subplots. Only required, if the dimension of both x and y are 2.
+        :param figsize: the size of the generated plot
+        :param font_size: font size of labels
+        :param y_log_scale: y axis will have log scale instead of linear
+        """
+
+        pl.plot([x for x in range(1, self.num_epoch+1)], [self.train_acc_log, self.test_acc_log], 'Epoch', 'Accuracy',
+                ['train', 'test'], "Train and Test Accuracy History {}".format(self.modelname),
+                "train_test_acc_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)
+
+
+    def plot_loss(self, sub_dim=None, figsize=(15, 10), font_size=24, y_log_scale=False):
+        """
+        Plot train and test loss during training.
+
+        :param sub_dim: dimensions of subplots. Only required, if the dimension of both x and y are 2.
+        :param figsize: the size of the generated plot
+        :param font_size: font size of labels
+        :param y_log_scale: y axis will have log scale instead of linear
+        """
+
+        pl.plot([x for x in range(1, self.num_epoch+1)], [self.tot_loss_log, self.ly_loss_log, self.lz_loss_log,
+                self.lx_loss_log, self.lrec_loss_log], 'Epoch', 'Loss',
+                ['total', 'ly', 'lz', 'lx', 'l_rec'], "Train Loss History {}".format(self.modelname),
+                "train_loss_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)

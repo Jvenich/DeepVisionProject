@@ -66,6 +66,26 @@ class inn_experiment:
             print("The requested dataset is not implemented yet.")
 
 
+    def get_accuracy(self, loader):
+        """
+        Evaluate accuracy of current model on given loader.
+
+        :param loader: pytorch loader for a dataset
+        :return: accuracy
+        """
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for data in tqdm(loader):
+                images, labels = data
+                images, labels = images.to(self.device), labels.to(self.device)
+                outputs = self.model(images)
+                _, predicted = torch.max(outputs[:, :self.num_classes], 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+        return 100 * correct / total
+
+
     def train(self):
         """
         Train INN model.
@@ -90,12 +110,12 @@ class inn_experiment:
             print("Training:")
 
             for i, data in enumerate(tqdm(self.trainloader), 0):
-                inputs, labels = data
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
+                img, labels = data
+                img, labels = img.to(self.device), labels.to(self.device)
 
                 self.optimizer.zero_grad()
 
-                lat_img = self.model(inputs)
+                lat_img = self.model(img)
                 lat_shape = lat_img.shape
                 lat_img = lat_img.view(lat_img.size(0), -1)
                 binary_label = lat_img.new_zeros(lat_img.size(0), self.num_classes)
@@ -104,12 +124,16 @@ class inn_experiment:
                 lat_img_mod = torch.cat([binary_label, lat_img[:, self.num_classes:]])
                 lat_img_mod = lat_img_mod.view(lat_shape)
                 output = self.model(lat_img_mod, rev=True)
-                batch_loss = self.criterion(inputs, lat_img, output, labels)
+                batch_loss = self.criterion(img, lat_img, output, labels)
                 batch_loss[0].backward()
                 self.optimizer.step()
 
                 for i in range(len(batch_loss)):
                     losses[i] += batch_loss[i].item()
+
+            self.model.eval()
+
+
 
 
 
@@ -117,12 +141,12 @@ class inn_experiment:
         for i, data in enumerate(tqdm(trainloader), 0):
             criterion.update_num_step(num_step)
             num_step += 1
-            inputs, labels = data
-            inputs, labels = inputs.to(device), labels.to(device)
+            img, labels = data
+            img, labels = img.to(device), labels.to(device)
 
             optimizer.zero_grad()
 
-            lat_img = model(inputs)
+            lat_img = model(img)
             lat_shape = lat_img.shape
             lat_img = lat_img.view(lat_img.size(0), -1)
             else:
@@ -134,11 +158,11 @@ class inn_experiment:
             output = model(lat_img_mod, rev=True)
 
             if conditional:
-                batch_loss = criterion(inputs, lat_img, output, labels, binary_label)
+                batch_loss = criterion(img, lat_img, output, labels, binary_label)
             elif use_label:
-                batch_loss = criterion(inputs, lat_img, output, labels)
+                batch_loss = criterion(img, lat_img, output, labels)
             else:
-                batch_loss = criterion(inputs, lat_img, output)
+                batch_loss = criterion(img, lat_img, output)
 
             batch_loss[0].backward()
 

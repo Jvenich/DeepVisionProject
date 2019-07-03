@@ -3,6 +3,7 @@ from torch import nn
 from functionalities import dataloader as dl
 from functionalities import filemanager as fm
 from functionalities import plot as pl
+from tqdm import tqdm_notebook as tqdm
 
 class classic_experiment:
     """
@@ -61,12 +62,12 @@ class classic_experiment:
         Evaluate accuracy of current model on given loader.
 
         :param loader: pytorch loader for a dataset
-        :return:
+        :return: accuracy
         """
         correct = 0
         total = 0
         with torch.no_grad():
-            for data in loader:
+            for data in tqdm(loader):
                 images, labels = data
                 images, labels = images.to(self.device), labels.to(self.device)
                 outputs = self.model(images)
@@ -90,7 +91,7 @@ class classic_experiment:
             self.scheduler.step()
             self.model.train()
 
-            for data in self.trainloader:
+            for data in tqdm(self.trainloader):
                 img, labels = data
                 img, labels = img.to(self.device), labels.to(self.device)
                 output = self.model(img)
@@ -124,5 +125,20 @@ class classic_experiment:
         """
 
         pl.plot([x for x in range(1, self.num_epoch+1)], [self.train_acc_log, self.test_acc_log], 'Epoch', 'Accuracy',
+                ['train', 'test'], "Train and Test Accuracy History {}".format(self.modelname),
+                "train_test_acc_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)
+
+
+    def plot_loss(self, sub_dim=None, figsize=(15, 10), font_size=24, y_log_scale=False):
+        """
+        Plot train and test loss during training.
+
+        :param sub_dim: dimensions of subplots. Only required, if the dimension of both x and y are 2.
+        :param figsize: the size of the generated plot
+        :param font_size: font size of labels
+        :param y_log_scale: y axis will have log scale instead of linear
+        """
+
+        pl.plot([x for x in range(1, self.num_epoch+1)], [self.train_loss_log, self.test_loss_log], 'Epoch', 'Accuracy',
                 ['train', 'test'], "Train and Test Accuracy History {}".format(self.modelname),
                 "train_test_acc_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)

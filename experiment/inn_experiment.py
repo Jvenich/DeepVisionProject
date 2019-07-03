@@ -14,7 +14,7 @@ class inn_experiment:
 
 
     def __init__(self, num_epoch, batch_size, lr_init, milestones, get_model, modelname, device='cpu',
-                 weight_decay=1e-6, a_class=1, a_noise=1, a_input=1):
+                 weight_decay=1e-6, a_class=1, a_noise=1, a_input=1, a_rec=1):
         """
         Init class with pretraining setup.
 
@@ -35,6 +35,7 @@ class inn_experiment:
         self.a_class = a_class
         self.a_noise = a_noise
         self.a_input = a_input
+        self.a_rec = a_rec
 
         self.model = get_model().to(self.device)
         self.init_param()
@@ -51,7 +52,7 @@ class inn_experiment:
 
     def get_dataset(self, dataset, pin_memory=True, drop_last=True):
         """
-        Init train-, testset and train-, testloader for experiment.
+        Init train-, testset and train-, testloader for experiment. Furthermore criterion will be initialized.
 
         :param dataset: string that describe which dataset to use for training. Current Options: "mnist", "cifar"
         :param pin_memory: If True, the data loader will copy tensors into CUDA pinned memory before returning them
@@ -60,13 +61,15 @@ class inn_experiment:
         if dataset == "mnist":
             self.trainset, self.testset, self.classes = dl.load_mnist()
             self.num_classes = len(self.classes)
-            self.criterion = il.INN_loss(self.num_classes, self.a_class, self.a_noise, self.a_input, self.device)
+            self.criterion = il.INN_loss(self.num_classes, self.a_class, self.a_noise, self.a_input, self.a_rec,
+                                         self.device)
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
         elif dataset == "cifar":
             self.trainset, self.testset, self.classes = dl.load_cifar()
             self.num_classes = len(self.classes)
-            self.criterion = il.INN_loss(self.num_classes, self.a_class, self.a_noise, self.a_input, self.device)
+            self.criterion = il.INN_loss(self.num_classes, self.a_class, self.a_noise, self.a_input, self.a_rec,
+                                         self.device)
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
         else:
@@ -87,6 +90,7 @@ class inn_experiment:
                 images, labels = data
                 images, labels = images.to(self.device), labels.to(self.device)
                 outputs = self.model(images)
+                outputs = outputs.view(outputs.size(0), -1)
                 _, predicted = torch.max(outputs[:, :self.num_classes], 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
@@ -112,7 +116,7 @@ class inn_experiment:
 
             losses = np.zeros(5, dtype=np.double)
 
-            print("Epoch: {}",format(epoch + 1))
+            print("Epoch: {}".format(epoch + 1))
             print("Training:")
 
             for i, data in enumerate(tqdm(self.trainloader), 0):
@@ -127,7 +131,7 @@ class inn_experiment:
                 binary_label = lat_img.new_zeros(lat_img.size(0), self.num_classes)
                 idx = torch.arange(labels.size(0), dtype=torch.long)
                 binary_label[idx, labels] = 1
-                lat_img_mod = torch.cat([binary_label, lat_img[:, self.num_classes:]])
+                lat_img_mod = torch.cat([binary_label, lat_img[:, self.num_classes:]], dim=1)
                 lat_img_mod = lat_img_mod.view(lat_shape)
                 output = self.model(lat_img_mod, rev=True)
                 batch_loss = self.criterion(img, lat_img, output, labels)

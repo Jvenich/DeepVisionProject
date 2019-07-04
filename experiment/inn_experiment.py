@@ -126,13 +126,13 @@ class inn_experiment:
                 self.optimizer.zero_grad()
 
                 lat_img = self.model(img)
-                lat_shape = lat_img.shape
-                lat_img = lat_img.view(lat_img.size(0), -1)
+                self.lat_shape = lat_img.shape
+                self.lat_img = lat_img.view(lat_img.size(0), -1)
                 binary_label = lat_img.new_zeros(lat_img.size(0), self.num_classes)
                 idx = torch.arange(labels.size(0), dtype=torch.long)
                 binary_label[idx, labels] = 1
                 lat_img_mod = torch.cat([binary_label, lat_img[:, self.num_classes:]], dim=1)
-                lat_img_mod = lat_img_mod.view(lat_shape)
+                lat_img_mod = lat_img_mod.view(self.lat_shape)
                 output = self.model(lat_img_mod, rev=True)
                 batch_loss = self.criterion(img, lat_img, output, labels)
                 batch_loss[0].backward()
@@ -213,3 +213,22 @@ class inn_experiment:
                 self.lx_loss_log, self.lrec_loss_log], 'Epoch', 'Loss',
                 ['total', 'ly', 'lz', 'lx', 'l_rec'], "Train Loss History {}".format(self.modelname),
                 "train_loss_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)
+
+
+    def generate(self, label):
+        """
+        Generate images based on given label. Only works after INN model was trained on classification.
+
+        :return:
+        """
+
+        binary_label = torch.zeros(self.batch_size, self.num_classes)
+        idx = torch.arange(self.batch_size)
+        binary_label[idx, label] = 1
+
+        gauss = torch.zeros(self.batch_size, self.lat_img.shape[1] - self.num_classes).normal()
+
+        lat_img = torch.cat([binary_label, gauss], dim=1).view(self.lat_shape)
+        gen_img = self.model(lat_img, rev=True)
+
+

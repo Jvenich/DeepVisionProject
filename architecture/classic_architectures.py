@@ -11,7 +11,7 @@ class mnist_model(nn.Module): # input: 1, 28, 28
         self.conv2 = nn.Conv2d(32, 64, 3, 1, 0) # 64, 24, 24
         self.conv3 = nn.Conv2d(64, 128, 1, 1, 0) # 128, 24, 24
         self.pool1 = nn.MaxPool2d(2, 2, 0) # 128, 12, 12
-        self.fc1 = nn.Linear(128*12*12, 512) # 512
+        self.fc1 = nn.Linear(128*12*12, 512) # 256
         self.fc2 = nn.Linear(512, 10) # 10
 
         self.relu = nn.ReLU()

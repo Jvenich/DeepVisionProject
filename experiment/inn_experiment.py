@@ -247,6 +247,8 @@ class inn_experiment:
         :return: None
         """
 
+        self.load_model()
+
         binary_label = torch.zeros(self.batch_size, self.num_classes)
         idx = torch.arange(self.batch_size)
         binary_label[idx, label] = 1

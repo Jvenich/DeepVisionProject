@@ -175,7 +175,7 @@ class inn_experiment:
         Initialize weights for INN models.
 
         :param sigma: standard deviation for gaussian
-        :return:
+        :return: None
         """
         for key, param in self.model.named_parameters():
             split = key.split('.')
@@ -183,6 +183,24 @@ class inn_experiment:
                 param.data = sigma * torch.randn(param.data.shape).cuda()
                 if split[3][-1] == '3':  # last convolution in the coeff func
                     param.data.fill_(0.)
+
+
+    def load_model(self):
+        """
+        Load pre-trained model based on modelname.
+
+        :return: None
+        """
+        self.model = fm.load_model('{}'.format(self.modelname))
+
+
+    def load_weights(self):
+        """
+        Load pre-trained weights based on modelname.
+
+        :return: None
+        """
+        self.model = fm.load_weight(self.model, '{}'.format(self.modelname))
 
 
     def plot_accuracy(self, sub_dim=None, figsize=(15, 10), font_size=24, y_log_scale=False):

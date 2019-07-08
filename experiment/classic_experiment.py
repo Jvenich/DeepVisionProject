@@ -131,6 +131,24 @@ class classic_experiment:
         fm.save_variable([self.train_acc_log, self.test_acc_log], '{}'.format(self.modelname))
 
 
+    def load_model(self):
+        """
+        Load pre-trained model based on modelname.
+
+        :return: None
+        """
+        self.model = fm.load_model('{}'.format(self.modelname))
+
+
+    def load_weights(self):
+        """
+        Load pre-trained weights based on modelname.
+
+        :return: None
+        """
+        self.model = fm.load_weight(self.model, '{}'.format(self.modelname))
+
+
     def plot_accuracy(self, sub_dim=None, figsize=(15, 10), font_size=24, y_log_scale=False):
         """
         Plot train and test accuracy during training.

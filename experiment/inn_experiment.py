@@ -215,11 +215,13 @@ class inn_experiment:
                 "train_loss_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)
 
 
-    def generate(self, label):
+    def generate(self, label, num_img=100, img_per_row=10):
         """
         Generate images based on given label. Only works after INN model was trained on classification.
 
-        :return:
+        :param label: label of class to generate images from
+        :param num_img: number of images to generate
+        :param img_per_row: number of images to show in each row
         """
 
         binary_label = torch.zeros(self.batch_size, self.num_classes)
@@ -230,5 +232,7 @@ class inn_experiment:
 
         lat_img = torch.cat([binary_label, gauss], dim=1).view(self.lat_shape)
         gen_img = self.model(lat_img, rev=True)
+
+
 
 

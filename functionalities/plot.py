@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
 
 
 
@@ -93,5 +94,29 @@ def plot(x, y, x_label, y_label, plot_label, title, filename, sub_dim=None, figs
         os.makedirs(subdir)
 
     fig.savefig(os.path.join(subdir, filename + ".png"), transparent=True, bbox_inches='tight', pad_inches=0)
+
+    plt.show()
+
+
+def imshow(img, figsize=(30, 30), filename=None):
+    """
+    Custom modified imshow function.
+    :param img: image to plot
+    :param figsize: the size of the generated plot
+    :param filename: file name under which the plot will be saved. (optional)
+    :return: None
+    """
+    img = torch.clamp(img, 0, 1)
+    img = img.to('cpu')
+    npimg = img.numpy()
+    plt.figsize = figsize
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+
+    if filename is not None:
+        subdir = "./plot"
+        if not os.path.exists(subdir):
+            os.makedirs(subdir)
+
+        plt.savefig(os.path.join(subdir, filename + ".png"),  transparent = True, bbox_inches = 'tight', pad_inches = 0)
 
     plt.show()

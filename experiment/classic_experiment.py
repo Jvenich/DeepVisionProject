@@ -109,9 +109,7 @@ class classic_experiment:
             print("Evaluating:")
             self.model.eval()
 
-            print("Trainset:")
             train_acc = self.get_accuracy(self.trainloader)
-            print("Testset:")
             test_acc = self.get_accuracy(self.testloader)
 
             print('loss: {:.3f} \t train acc: {:.3f} \t test acc: {:.3f}'.format(loss.data.item(), train_acc, test_acc))

@@ -15,7 +15,7 @@ class inn_experiment:
 
 
     def __init__(self, num_epoch, batch_size, lr_init, milestones, get_model, modelname, device='cpu',
-                 weight_decay=1e-6, a_class=1, a_noise=1, a_input=1, a_rec=1):
+                 a_y=1, a_z=1, a_x=1, a_rec=1, weight_decay=1e-6):
         """
         Init class with pretraining setup.
 
@@ -33,9 +33,9 @@ class inn_experiment:
         self.batch_size = batch_size
         self.modelname = modelname
         self.device = device
-        self.a_class = a_class
-        self.a_noise = a_noise
-        self.a_input = a_input
+        self.a_y = a_y
+        self.a_z = a_z
+        self.a_x = a_x
         self.a_rec = a_rec
 
         self.model = get_model().to(self.device)
@@ -62,14 +62,18 @@ class inn_experiment:
         if dataset == "mnist":
             self.trainset, self.testset, self.classes = dl.load_mnist()
             self.num_classes = len(self.classes)
-            self.criterion = il.INN_loss(self.num_classes, self.a_class, self.a_noise, self.a_input, self.a_rec,
-                                         self.device)
+            self.criterion = il.INN_loss(self.num_classes, self.a_y, self.a_z, self.a_x, self.a_rec, self.device)
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
+            img, _ = next(iter(self.trainloader))
+            img = img.to(self.device)
+            lat_img = self.model(img)
+            self.lat_shape = lat_img.shape
+            self.lat_img = lat_img.view(lat_img.size(0), -1)
         elif dataset == "cifar":
             self.trainset, self.testset, self.classes = dl.load_cifar()
             self.num_classes = len(self.classes)
-            self.criterion = il.INN_loss(self.num_classes, self.a_class, self.a_noise, self.a_input, self.a_rec,
+            self.criterion = il.INN_loss(self.num_classes, self.a_y, self.a_z, self.a_x, self.a_rec,
                                          self.device)
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
@@ -98,6 +102,16 @@ class inn_experiment:
         return 100 * correct / total
 
 
+    def update_criterion(self, a_y, a_z, a_x, a_rec):
+        """
+        Update scaling factors for inn_loss.
+
+        :return: None
+        """
+        self.criterion = il.INN_loss(self.num_classes, a_y, a_z, a_x, a_rec, self.device)
+
+
+
     def train(self):
         """
         Train INN model.
@@ -115,6 +129,12 @@ class inn_experiment:
             self.scheduler.step()
             self.model.train()
 
+            if epoch == 3:
+                self.update_criterion(0, 1, 0, 1)
+
+            if epoch == 5:
+                self.update_criterion(0, 1, 0, 0)
+
             losses = np.zeros(5, dtype=np.double)
 
             print("Epoch: {}".format(epoch + 1))
@@ -127,13 +147,14 @@ class inn_experiment:
                 self.optimizer.zero_grad()
 
                 lat_img = self.model(img)
-                self.lat_shape = lat_img.shape
-                self.lat_img = lat_img.view(lat_img.size(0), -1)
+                lat_shape = lat_img.shape
+                lat_img = lat_img.view(lat_img.size(0), -1)
                 binary_label = lat_img.new_zeros(lat_img.size(0), self.num_classes)
                 idx = torch.arange(labels.size(0), dtype=torch.long)
-                binary_label[idx, labels] = 1
+                _, predicted = torch.max(lat_img[:, :self.num_classes], 1)
+                binary_label[idx, predicted] = 1
                 lat_img_mod = torch.cat([binary_label, lat_img[:, self.num_classes:]], dim=1)
-                lat_img_mod = lat_img_mod.view(self.lat_shape)
+                lat_img_mod = lat_img_mod.view(lat_shape)
                 output = self.model(lat_img_mod, rev=True)
                 batch_loss = self.criterion(img, lat_img, output, labels)
                 batch_loss[0].backward()
@@ -253,9 +274,9 @@ class inn_experiment:
         idx = torch.arange(self.batch_size)
         binary_label[idx, label] = 1
 
-        gauss = torch.zeros(self.batch_size, self.lat_img.shape[1] - self.num_classes).normal()
+        gauss = torch.zeros(self.batch_size, self.lat_img.shape[1] - self.num_classes).normal_()
 
-        lat_img = torch.cat([binary_label, gauss], dim=1).view(self.lat_shape)
+        lat_img = torch.cat([binary_label, gauss], dim=1).view(self.lat_shape).to(self.device)
         gen_img = self.model(lat_img, rev=True)
 
         pl.imshow(torchvision.utils.make_grid(gen_img[:num_img].detach(), row_size), figsize,

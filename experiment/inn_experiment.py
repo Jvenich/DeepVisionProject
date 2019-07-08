@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torchvision
 from functionalities import inn_loss as il
 from functionalities import dataloader as dl
 from functionalities import filemanager as fm
@@ -192,6 +193,7 @@ class inn_experiment:
         :param figsize: the size of the generated plot
         :param font_size: font size of labels
         :param y_log_scale: y axis will have log scale instead of linear
+        :return: None
         """
 
         pl.plot([x for x in range(1, self.num_epoch+1)], [self.train_acc_log, self.test_acc_log], 'Epoch', 'Accuracy',
@@ -207,6 +209,7 @@ class inn_experiment:
         :param figsize: the size of the generated plot
         :param font_size: font size of labels
         :param y_log_scale: y axis will have log scale instead of linear
+        :return: None
         """
 
         pl.plot([x for x in range(1, self.num_epoch+1)], [self.tot_loss_log, self.ly_loss_log, self.lz_loss_log,
@@ -215,13 +218,15 @@ class inn_experiment:
                 "train_loss_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)
 
 
-    def generate(self, label, num_img=100, img_per_row=10):
+    def generate(self, label, num_img=100, row_size=10, figsize=(30, 30)):
         """
         Generate images based on given label. Only works after INN model was trained on classification.
 
         :param label: label of class to generate images from
         :param num_img: number of images to generate
-        :param img_per_row: number of images to show in each row
+        :param row_size: number of images to show in each row
+        :param figsize: the size of the generated plot
+        :return: None
         """
 
         binary_label = torch.zeros(self.batch_size, self.num_classes)
@@ -232,6 +237,9 @@ class inn_experiment:
 
         lat_img = torch.cat([binary_label, gauss], dim=1).view(self.lat_shape)
         gen_img = self.model(lat_img, rev=True)
+
+        pl.imshow(torchvision.utils.make_grid(gen_img[:num_img].detach(), row_size), figsize,
+                  self.modelname + "generate_{}".format(self.classes[label]))
 
 
 

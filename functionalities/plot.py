@@ -109,8 +109,14 @@ def imshow(img, figsize=(30, 30), filename=None):
     img = torch.clamp(img, 0, 1)
     img = img.to('cpu')
     npimg = img.numpy()
+    print("npimg", npimg.shape)
     plt.figsize = figsize
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    if len(img.shape) == 3:
+        plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    elif len(img.shape) == 2:
+        plt.imshow(npimg, cmap='gray')
+    else:
+        print("Plotting image with dimension {} is not implemented/possible.".format(img.shape))
 
     if filename is not None:
         subdir = "./plot"

@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torchvision
+from torch.distributions.multivariate_normal import MultivariateNormal as normal
 from functionalities import inn_loss as il
 from functionalities import dataloader as dl
 from functionalities import filemanager as fm
@@ -129,12 +130,6 @@ class inn_experiment:
             self.scheduler.step()
             self.model.train()
 
-            if epoch == 3:
-                self.update_criterion(0, 1, 0, 1)
-
-            if epoch == 5:
-                self.update_criterion(0, 1, 0, 0)
-
             losses = np.zeros(5, dtype=np.double)
 
             print("Epoch: {}".format(epoch + 1))
@@ -147,16 +142,30 @@ class inn_experiment:
                 self.optimizer.zero_grad()
 
                 lat_img = self.model(img)
-                lat_shape = lat_img.shape
-                lat_img = lat_img.view(lat_img.size(0), -1)
-                binary_label = lat_img.new_zeros(lat_img.size(0), self.num_classes)
-                idx = torch.arange(labels.size(0), dtype=torch.long)
-                _, predicted = torch.max(lat_img[:, :self.num_classes], 1)
-                binary_label[idx, predicted] = 1
-                lat_img_mod = torch.cat([binary_label, lat_img[:, self.num_classes:]], dim=1)
-                lat_img_mod = lat_img_mod.view(lat_shape)
-                output = self.model(lat_img_mod, rev=True)
-                batch_loss = self.criterion(img, lat_img, output, labels)
+                #lat_shape = lat_img.shape
+                flat_lat_img = lat_img.view(lat_img.size(0), -1)
+
+                #binary_label = lat_img.new_zeros(lat_img.size(0), self.num_classes)
+                #idx = torch.arange(labels.size(0), dtype=torch.long)
+                #_, predicted = torch.max(lat_img[:, :self.num_classes], 1)
+                #binary_label[idx, predicted] = 1
+
+                #lat_img_mod = torch.cat([binary_label, lat_img[:, self.num_classes:]], dim=1)
+
+
+
+                #lat_img_mod = torch.cat([y, sample], dim=1)
+                #lat_img_mod = lat_img_mod.view(self.lat_shape)
+
+
+
+                output = self.model(lat_img, rev=True)
+                if i == epoch:
+                    print("input")
+                    pl.imshow(img[0][0].detach())
+                    print("output")
+                    pl.imshow(output[0][0].detach())
+                batch_loss = self.criterion(img, flat_lat_img, output, labels)
                 batch_loss[0].backward()
                 self.optimizer.step()
 
@@ -257,7 +266,7 @@ class inn_experiment:
                 "train_loss_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)
 
 
-    def generate(self, label, num_img=100, row_size=10, figsize=(30, 30)):
+    def generate(self, num_img=100, row_size=10, figsize=(30, 30)):
         """
         Generate images based on given label. Only works after INN model was trained on classification.
 
@@ -270,17 +279,33 @@ class inn_experiment:
 
         self.load_model()
 
-        binary_label = torch.zeros(self.batch_size, self.num_classes)
-        idx = torch.arange(self.batch_size)
-        binary_label[idx, label] = 1
+        img, _ = next(iter(self.trainloader))
+        img = img.to(self.device)
 
-        gauss = torch.zeros(self.batch_size, self.lat_img.shape[1] - self.num_classes).normal_()
+        #img = torch.cat([img[0].unsqueeze(0) for i in range(self.batch_size)])
 
-        lat_img = torch.cat([binary_label, gauss], dim=1).view(self.lat_shape).to(self.device)
+        y = self.model(img)
+        y = y.view(y.size(0), -1)
+
+
+        #gauss = torch.empty(self.batch_size, self.lat_img.shape[1] - self.num_classes).normal_().to(self.device)
+        gauss = y[:, self.num_classes:]
+        y = torch.cat([y[0].unsqueeze(0) for i in range(self.batch_size)])
+
+        lat_img = torch.cat([y[:, :self.num_classes], gauss], dim=1).to(self.device)
+        lat_img = torch.cat([y[:, :self.num_classes], gauss], dim=1).to(self.device)
+        lat_img = lat_img.view(self.lat_shape)
         gen_img = self.model(lat_img, rev=True)
 
+        print(img[0].shape)
+        pl.imshow(img[0][0].detach())
+
+        pl.imshow(gen_img[0][0].detach())
+
+        print(gen_img[:num_img].shape)
+        print(torchvision.utils.make_grid(gen_img[:num_img].detach(), row_size).shape)
         pl.imshow(torchvision.utils.make_grid(gen_img[:num_img].detach(), row_size), figsize,
-                  self.modelname + "generate_{}".format(self.classes[label]))
+                  self.modelname + "generate".format())
 
 
 

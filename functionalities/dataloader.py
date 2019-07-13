@@ -44,6 +44,22 @@ def load_cifar():
     return trainset, testset, classes
 
 
+def load_artset():
+    """
+    Before this functions works, do the following steps:
+        1) Download Painter by Numbers dataset from Kaggle: https://www.kaggle.com/c/painter-by-numbers/data
+        2) Extract painter-by-numbers.zip
+        3) Navigate to the extracted folder painter-by-numbers and extract train.zip and
+        replacements_for_corrupted_files.zip
+        4) Navigate to extracted folder replacements_for_corrupted_files/train and copy all images in there to the
+        extracted train folder. Accept replacement of the copied images, when asked by your operating system.
+        5) Copy train folder and train_info.csv to this project folder ../DeepVision Project/datasets/artset
+        6) 
+
+    :return:
+    """
+
+
 def get_loader(dataset, batch_size, pin_memory=True, drop_last=True):
     """
     Create loader for a given dataset.

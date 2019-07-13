@@ -165,7 +165,7 @@ class inn_experiment:
                     pl.imshow(img[0][0].detach())
                     print("output")
                     pl.imshow(output[0][0].detach())
-                batch_loss = self.criterion(img, flat_lat_img, output, labels)
+                batch_loss = self.criterion(img, flat_lat_img, output, labels, self.model)
                 batch_loss[0].backward()
                 self.optimizer.step()
 
@@ -288,11 +288,11 @@ class inn_experiment:
         y = y.view(y.size(0), -1)
 
 
-        #gauss = torch.empty(self.batch_size, self.lat_img.shape[1] - self.num_classes).normal_().to(self.device)
-        gauss = y[:, self.num_classes:]
+        gauss = torch.randn(y[:, self.num_classes:].shape).to(self.device)
+        #gauss = y[:, self.num_classes:]
         y = torch.cat([y[0].unsqueeze(0) for i in range(self.batch_size)])
 
-        lat_img = torch.cat([y[:, :self.num_classes], gauss], dim=1).to(self.device)
+        #lat_img = torch.cat([y[:, :self.num_classes], gauss], dim=1).to(self.device)
         lat_img = torch.cat([y[:, :self.num_classes], gauss], dim=1).to(self.device)
         lat_img = lat_img.view(self.lat_shape)
         gen_img = self.model(lat_img, rev=True)

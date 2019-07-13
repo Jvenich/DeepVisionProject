@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 import torchvision
 from functionalities import inn_loss as il
@@ -15,7 +14,7 @@ class inn_experiment:
 
 
     def __init__(self, num_epoch, batch_size, lr_init, milestones, get_model, modelname, device='cpu',
-                 a_y=1, a_z=1, a_x=1, a_rec=1, weight_decay=1e-6):
+                 sigma=1, weight_decay=1e-6):
         """
         Init class with pretraining setup.
 
@@ -33,10 +32,7 @@ class inn_experiment:
         self.batch_size = batch_size
         self.modelname = modelname
         self.device = device
-        self.a_y = a_y
-        self.a_z = a_z
-        self.a_x = a_x
-        self.a_rec = a_rec
+        self.sigma = sigma
 
         self.model = get_model().to(self.device)
         self.init_param()
@@ -80,7 +76,7 @@ class inn_experiment:
         self.lat_shape = lat_img.shape
 
         self.num_classes = len(self.classes)
-        self.criterion = il.INN_loss(self.num_classes, self.a_y, self.a_z, self.a_x, self.a_rec, self.device)
+        self.criterion = il.INN_loss(self.num_classes, self.sigma, self.device)
 
 
     def get_accuracy(self, loader):
@@ -104,13 +100,13 @@ class inn_experiment:
         return 100 * correct / total
 
 
-    def update_criterion(self, a_y, a_z, a_x, a_rec):
+    def update_criterion(self, sigma):
         """
         Update scaling factors for inn_loss.
 
         :return: None
         """
-        self.criterion = il.INN_loss(self.num_classes, a_y, a_z, a_x, a_rec, self.device)
+        self.criterion = il.INN_loss(self.num_classes, sigma, self.device)
 
 
 
@@ -121,17 +117,14 @@ class inn_experiment:
 
         self.train_acc_log = []
         self.test_acc_log = []
-        self.tot_loss_log = []
-        self.lx_loss_log = []
-        self.ly_loss_log = []
-        self.lz_loss_log = []
-        self.lrec_loss_log = []
+        self.loss_log = []
+
 
         for epoch in range(self.num_epoch):
             self.scheduler.step()
             self.model.train()
 
-            losses = np.zeros(5, dtype=np.double)
+            loss = 0
 
             print("Epoch: {}".format(epoch + 1))
             print("Training:")
@@ -143,35 +136,13 @@ class inn_experiment:
                 self.optimizer.zero_grad()
 
                 lat_img = self.model(img)
-                #lat_shape = lat_img.shape
-                flat_lat_img = lat_img.view(lat_img.size(0), -1)
-
-                #binary_label = lat_img.new_zeros(lat_img.size(0), self.num_classes)
-                #idx = torch.arange(labels.size(0), dtype=torch.long)
-                #_, predicted = torch.max(lat_img[:, :self.num_classes], 1)
-                #binary_label[idx, predicted] = 1
-
-                #lat_img_mod = torch.cat([binary_label, lat_img[:, self.num_classes:]], dim=1)
-
-
-
-                #lat_img_mod = torch.cat([y, sample], dim=1)
-                #lat_img_mod = lat_img_mod.view(self.lat_shape)
-
-
-
-                output = self.model(lat_img, rev=True)
-                if i == epoch:
-                    print("input")
-                    pl.imshow(img[0][0].detach())
-                    print("output")
-                    pl.imshow(output[0][0].detach())
-                batch_loss = self.criterion(img, flat_lat_img, output, labels, self.model)
-                batch_loss[0].backward()
+                lat_img = lat_img.view(lat_img.size(0), -1)
+                batch_loss = self.criterion(lat_img, labels, self.model)
+                batch_loss.backward()
                 self.optimizer.step()
 
-                for i in range(len(batch_loss)):
-                    losses[i] += batch_loss[i].item()
+                loss += batch_loss
+
 
             print("Evaluating:")
             self.model.eval()
@@ -179,17 +150,12 @@ class inn_experiment:
             train_acc = self.get_accuracy(self.trainloader)
             test_acc = self.get_accuracy(self.testloader)
 
-            print("Loss: {:.3f} \t L_y: {:.3f} \t L_z: {:.3f} \t L_x: {:.3f} \t L_rec: {:.3f}".format(
-                losses[0], losses[1], losses[2], losses[3], losses[4]))
-            print("Train_acc: {:.3f} \t Test_acc: {:.3f}".format(train_acc, test_acc))
+            print("Loss: {:.3f} \t Train_acc: {:.3f} \t Test_acc: {:.3f}".format(loss, train_acc, test_acc))
 
             self.train_acc_log.append(train_acc)
             self.test_acc_log.append(test_acc)
-            self.tot_loss_log.append(losses[0])
-            self.ly_loss_log.append(losses[1])
-            self.lz_loss_log.append(losses[2])
-            self.lx_loss_log.append(losses[3])
-            self.lrec_loss_log.append(losses[4])
+            self.loss_log.append(loss)
+
 
         print(80 * "-")
         print("Final Test Accuracy:", self.test_acc_log[-1])
@@ -197,8 +163,7 @@ class inn_experiment:
         fm.save_model(self.model, '{}'.format(self.modelname))
         fm.save_weight(self.model, '{}'.format(self.modelname))
         fm.save_variable([self.train_acc_log, self.test_acc_log], '{}_acc'.format(self.modelname))
-        fm.save_variable([self.tot_loss_log, self.ly_loss_log, self.lz_loss_log, self.lx_loss_log, self.lrec_loss_log],
-                         '{}_loss'.format(self.modelname))
+        fm.save_variable([self.loss_log], '{}_loss'.format(self.modelname))
 
 
     def init_param(self, sigma=0.1):

@@ -36,12 +36,10 @@ def MMD_multiscale(x, y, device):
     return torch.mean(XX + YY - 2.*XY)
 
 
-def loss_max_likelihood(x, y, model, num_classses):
+def loss_max_likelihood(x, y, model, num_classses, sigma):
     jac = model.jacobian(run_forward=False)
 
-    neg_log_likeli = ( 0.5 * torch.sum((x[:, :num_classses] - y[:, :num_classses])**2, 1)
-                     #+ 0.5 * torch.sum((x[:, ndim_z:-ndim_y] - y[:, ndim_z:-ndim_y])**2, 1)
-                     + 0.5 * torch.sum(x[:, num_classses:]**2, 1)
-                     - jac)
+    neg_log_like = ( 0.5 / sigma**2 * torch.sum((x[:, :num_classses] - y[:, :num_classses])**2, 1)
+                     + 0.5 * torch.sum(x[:, num_classses:]**2, 1) - jac)
 
-    return torch.mean(neg_log_likeli)
+    return torch.mean(neg_log_like)

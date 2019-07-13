@@ -25,6 +25,7 @@ class classic_experiment:
         :param device: device on which to do the computation (CPU or CUDA). Please use get_device() to get device
         variable, if using multiple GPU's.
         :param weight_decay: weight decay (L2 penalty) for adam optimizer
+        :return: None
         """
         self.num_epoch = num_epoch
         self.batch_size = batch_size
@@ -37,13 +38,16 @@ class classic_experiment:
         self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=milestones, gamma=0.1)
 
 
-    def get_dataset(self, dataset, pin_memory=True, drop_last=True):
+    def get_dataset(self, dataset, pin_memory=True, drop_last=True, ratio=0.2):
         """
         Init train-, testset and train-, testloader for experiment.
 
         :param dataset: string that describe which dataset to use for training. Current Options: "mnist", "cifar"
         :param pin_memory: If True, the data loader will copy tensors into CUDA pinned memory before returning them
         :param drop_last: If true, drop the last incomplete batch, if the dataset is not divisible by the batch size
+        :param ratio: Only necessary if dataset is "artset". Ratio of train- and testset by which Painter by Numbers
+        dataset should be divided by.
+        :return: None
         """
         if dataset == "mnist":
             self.trainset, self.testset, self.classes = dl.load_mnist()
@@ -53,6 +57,10 @@ class classic_experiment:
             self.trainset, self.testset, self.classes = dl.load_cifar()
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
+        elif dataset == "artset":
+            self.dataset, self.classes = dl.load_artset()
+            self.trainloader, self.testloader = dl.split_dataset(self.dataset, ratio, self.batch_size, pin_memory,
+                                                                 drop_last)
         else:
             print("The requested dataset is not implemented yet.")
 

@@ -57,16 +57,24 @@ def load_artset():
         6) Navigate to DeepVision Project folder and run python prepare_artset.py
         7) Delete the original train folder and the train_info.csv file
 
-    :return:
+    After the above steps have been performed. This function returns the dataset of Painter by Numbers containing the
+    images and labels. Additionally, a dict mapping labels to classes will be returned.
+
+    :return: dataset, classes
     """
 
     image_path = './datasets/artset/'
 
     transform = transforms.Compose([transforms.ToTensor()])
 
-    dataset = datasets.ImageFolder(image_path, transform)
+    try:
+        dataset = datasets.ImageFolder(image_path, transform)
+    except:
+        print(load_artset.__doc__)
 
-    trainloader, testloader = dl.split_dataset(dat)
+    classes = dataset.classes
+
+    return dataset, classes
 
 
 def get_loader(dataset, batch_size, pin_memory=True, drop_last=True):

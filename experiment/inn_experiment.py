@@ -70,7 +70,6 @@ class inn_experiment:
             img = img.to(self.device)
             lat_img = self.model(img)
             self.lat_shape = lat_img.shape
-            self.lat_img = lat_img.view(lat_img.size(0), -1)
         elif dataset == "cifar":
             self.trainset, self.testset, self.classes = dl.load_cifar()
             self.num_classes = len(self.classes)
@@ -78,6 +77,10 @@ class inn_experiment:
                                          self.device)
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
+            img, _ = next(iter(self.trainloader))
+            img = img.to(self.device)
+            lat_img = self.model(img)
+            self.lat_shape = lat_img.shape
         else:
             print("The requested dataset is not implemented yet.")
 

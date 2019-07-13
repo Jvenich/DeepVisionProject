@@ -23,4 +23,4 @@ for image in all_images:
     print('Moved {} to {}'.format(image, path_to))
     co += 1
 
-print('Moved {} images.'.format_map(co))
+print('Moved {} images.'.format(co))

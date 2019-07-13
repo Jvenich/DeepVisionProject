@@ -54,10 +54,19 @@ def load_artset():
         4) Navigate to extracted folder replacements_for_corrupted_files/train and copy all images in there to the
         extracted train folder. Accept replacement of the copied images, when asked by your operating system.
         5) Copy train folder and train_info.csv to this project folder ../DeepVision Project/datasets/artset
-        6) 
+        6) Navigate to DeepVision Project folder and run python prepare_artset.py
+        7) Delete the original train folder and the train_info.csv file
 
     :return:
     """
+
+    image_path = './datasets/artset/'
+
+    transform = transforms.Compose([transforms.ToTensor()])
+
+    dataset = datasets.ImageFolder(image_path, transform)
+
+    trainloader, testloader = dl.split_dataset(dat)
 
 
 def get_loader(dataset, batch_size, pin_memory=True, drop_last=True):
@@ -74,3 +83,29 @@ def get_loader(dataset, batch_size, pin_memory=True, drop_last=True):
     loader = torch.utils.data.DataLoader(dataset, pin_memory=pin_memory, batch_size=batch_size, drop_last=drop_last)
 
     return loader
+
+
+def split_dataset(dataset, ratio, batch_size, pin_memory=True, drop_last=True):
+    """
+    Split a dataset into two subset. e.g. trainset and validation-/testset
+    :param dataset: dataset, which should be split
+    :param ratio: the ratio the two splitted datasets should have to each other
+    :param batch_size: batch size the returned dataloaders should have
+    :param pin_memory: pin_memory argument for pytorch dataloader, will be simply forwarded
+    :param drop_last: If true, drop the last incomplete batch, if the dataset is not divisible by the batch size
+    :return: dataloader_1, dataloader_2
+    """
+
+    indices = torch.randperm(len(dataset))
+    idx_1 = indices[:len(indices) - int(ratio * len(indices))]
+    idx_2 = indices[len(indices) - int(ratio * len(indices)):]
+
+    dataloader_1 = torch.utils.data.DataLoader(dataset, pin_memory=pin_memory, batch_size=batch_size,
+                                               sampler=torch.utils.data.sampler.SubsetRandomSampler(idx_1),
+                                               drop_last=drop_last)
+
+    dataloader_2 = torch.utils.data.DataLoader(dataset, pin_memory=pin_memory, batch_size=batch_size,
+                                               sampler=torch.utils.data.sampler.SubsetRandomSampler(idx_2),
+                                               drop_last=drop_last)
+
+    return dataloader_1, dataloader_2

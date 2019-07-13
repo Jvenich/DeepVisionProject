@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torchvision
-from torch.distributions.multivariate_normal import MultivariateNormal as normal
 from functionalities import inn_loss as il
 from functionalities import dataloader as dl
 from functionalities import filemanager as fm
@@ -62,27 +61,26 @@ class inn_experiment:
         """
         if dataset == "mnist":
             self.trainset, self.testset, self.classes = dl.load_mnist()
-            self.num_classes = len(self.classes)
-            self.criterion = il.INN_loss(self.num_classes, self.a_y, self.a_z, self.a_x, self.a_rec, self.device)
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
-            img, _ = next(iter(self.trainloader))
-            img = img.to(self.device)
-            lat_img = self.model(img)
-            self.lat_shape = lat_img.shape
         elif dataset == "cifar":
             self.trainset, self.testset, self.classes = dl.load_cifar()
-            self.num_classes = len(self.classes)
-            self.criterion = il.INN_loss(self.num_classes, self.a_y, self.a_z, self.a_x, self.a_rec,
-                                         self.device)
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
-            img, _ = next(iter(self.trainloader))
-            img = img.to(self.device)
-            lat_img = self.model(img)
-            self.lat_shape = lat_img.shape
+        elif dataset == "artset":
+            self.dataset, self.classes = dl.load_artset()
+            self.trainloader, self.testloader = dl.split_dataset(self.dataset, 0.2, self.batch_size, pin_memory,
+                                                                 drop_last)
         else:
             print("The requested dataset is not implemented yet.")
+
+        img, _ = next(iter(self.trainloader))
+        img = img.to(self.device)
+        lat_img = self.model(img)
+        self.lat_shape = lat_img.shape
+
+        self.num_classes = len(self.classes)
+        self.criterion = il.INN_loss(self.num_classes, self.a_y, self.a_z, self.a_x, self.a_rec, self.device)
 
 
     def get_accuracy(self, loader):

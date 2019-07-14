@@ -26,3 +26,7 @@ class mnist_model(nn.Module): # input: 1, 28, 28
         h5 = self.fc2(h4)
 
         return F.log_softmax(h5, dim=1)
+
+
+
+def get_alexnet

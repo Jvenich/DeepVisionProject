@@ -1,3 +1,4 @@
+import torchvision.models as models
 from torch import nn
 import torch.nn.functional as F
 
@@ -29,4 +30,41 @@ class mnist_model(nn.Module): # input: 1, 28, 28
 
 
 
-def get_alexnet
+def get_alexnet(num_classes=136):
+    """
+
+
+    :return:
+    """
+
+    alexnet = models.alexnet()
+    alexnet.classifier[6] = nn.Linear(4096, num_classes)
+
+    return alexnet
+
+
+def get_vgg16(num_classes=136):
+    """
+
+    :param num_classes:
+    :return:
+    """
+
+    vgg16 = models.vgg16()
+    vgg16.classifier[6] = nn.Linear(4096, num_classes)
+
+    return vgg16
+
+
+def get_resnet18(num_classes=136):
+    """
+
+
+    :param num_classes:
+    :return:
+    """
+
+    resnet18 = models.resnet18()
+    resnet18.fc = nn.Linear(512, num_classes)
+
+    return resnet18

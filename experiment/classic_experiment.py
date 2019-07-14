@@ -61,6 +61,10 @@ class classic_experiment:
             self.dataset, self.classes = dl.load_artset()
             self.trainloader, self.testloader = dl.split_dataset(self.dataset, ratio, self.batch_size, pin_memory,
                                                                  drop_last)
+            img, label = next(iter(self.trainloader))
+            print(img.shape)
+            print(label.shape)
+            print(len(self.classes))
         else:
             print("The requested dataset is not implemented yet.")
 
@@ -134,7 +138,8 @@ class classic_experiment:
 
         fm.save_model(self.model, '{}'.format(self.modelname))
         fm.save_weight(self.model, '{}'.format(self.modelname))
-        fm.save_variable([self.train_acc_log, self.test_acc_log], '{}'.format(self.modelname))
+        fm.save_variable([self.train_acc_log, self.test_acc_log], '{}_acc'.format(self.modelname))
+        fm.save_variable([self.loss_log], '{}_loss'.format(self.modelname))
 
 
     def load_model(self):
@@ -155,6 +160,16 @@ class classic_experiment:
         self.model = fm.load_weight(self.model, '{}'.format(self.modelname))
 
 
+    def load_variables(self):
+        """
+        Load recorded loss and accuracy training history to class variable.
+
+        :return: None
+        """
+        self.train_acc_log, self.test_acc_log = fm.load_variable('{}_acc'.format(self.modelname))
+        self.loss_log = fm.load_variable('{}_loss'.format(self.modelname))
+
+
     def plot_accuracy(self, sub_dim=None, figsize=(15, 10), font_size=24, y_log_scale=False):
         """
         Plot train and test accuracy during training.
@@ -164,6 +179,7 @@ class classic_experiment:
         :param font_size: font size of labels
         :param y_log_scale: y axis will have log scale instead of linear
         """
+        self.load_variables()
 
         pl.plot([x for x in range(1, self.num_epoch+1)], [self.train_acc_log, self.test_acc_log], 'Epoch', 'Accuracy',
                 ['train', 'test'], "Train and Test Accuracy History {}".format(self.modelname),
@@ -179,6 +195,7 @@ class classic_experiment:
         :param font_size: font size of labels
         :param y_log_scale: y axis will have log scale instead of linear
         """
+        self.load_variables()
 
         pl.plot([x for x in range(1, self.num_epoch+1)], self.loss_log, 'Epoch', 'Loss',
                 ['train', 'test'], "Train and Test Loss History {}".format(self.modelname),

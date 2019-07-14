@@ -199,6 +199,16 @@ class inn_experiment:
         self.model = fm.load_weight(self.model, '{}'.format(self.modelname))
 
 
+    def load_variables(self):
+        """
+        Load recorded loss and accuracy training history to class variable.
+
+        :return: None
+        """
+        self.train_acc_log, self.test_acc_log = fm.load_variable('{}_acc'.format(self.modelname))
+        self.loss_log = fm.load_variable('{}_loss'.format(self.modelname))
+
+
     def plot_accuracy(self, sub_dim=None, figsize=(15, 10), font_size=24, y_log_scale=False):
         """
         Plot train and test accuracy during training.
@@ -209,6 +219,8 @@ class inn_experiment:
         :param y_log_scale: y axis will have log scale instead of linear
         :return: None
         """
+
+        self.load_variables()
 
         pl.plot([x for x in range(1, self.num_epoch+1)], [self.train_acc_log, self.test_acc_log], 'Epoch', 'Accuracy',
                 ['train', 'test'], "Train and Test Accuracy History {}".format(self.modelname),
@@ -225,6 +237,8 @@ class inn_experiment:
         :param y_log_scale: y axis will have log scale instead of linear
         :return: None
         """
+
+        self.load_variables()
 
         pl.plot([x for x in range(1, self.num_epoch+1)], [self.tot_loss_log, self.ly_loss_log, self.lz_loss_log,
                 self.lx_loss_log, self.lrec_loss_log], 'Epoch', 'Loss',

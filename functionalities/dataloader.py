@@ -65,7 +65,7 @@ def load_artset():
 
     image_path = './datasets/artset/'
 
-    transform = transforms.Compose([transforms.Resize((256, 256)), transforms.ToTensor()])
+    transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
 
     try:
         dataset = datasets.ImageFolder(image_path, transform)

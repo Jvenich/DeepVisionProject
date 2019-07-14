@@ -97,7 +97,17 @@ def artset_inn_model(img_dims=[3, 224, 224]):
                      {'F_class': fu.F_conv, 'F_args': {'channels_hidden': 32}, 'clamp': 1}, name='conv43')
 
 
-    r2 = fr.Node([conv43.out0], re.reshape_layer, {'target_dim': (img_dims[0] * img_dims[1] * img_dims[2],)}, name='r2')
+    conv51 = fr.Node([conv43.out0], la.glow_coupling_layer,
+                     {'F_class': fu.F_conv, 'F_args': {'channels_hidden': 32}, 'clamp': 1}, name='conv51')
+
+    conv52 = fr.Node([conv51.out0], la.glow_coupling_layer,
+                     {'F_class': fu.F_conv, 'F_args': {'channels_hidden': 32}, 'clamp': 1}, name='conv52')
+
+    conv53 = fr.Node([conv52.out0], la.glow_coupling_layer,
+                     {'F_class': fu.F_conv, 'F_args': {'channels_hidden': 32}, 'clamp': 1}, name='conv53')
+
+
+    r2 = fr.Node([conv53.out0], re.reshape_layer, {'target_dim': (img_dims[0] * img_dims[1] * img_dims[2],)}, name='r2')
 
     fc1 = fr.Node([r2.out0], la.glow_coupling_layer,
                  {'F_class': fu.F_fully_connected, 'F_args': {'internal_size': 512}, 'clamp': 1}, name='fc1')
@@ -115,7 +125,8 @@ def artset_inn_model(img_dims=[3, 224, 224]):
 
     outp = fr.OutputNode([r4.out0], name='output')
 
-    nodes = [inp, outp, conv11, conv12, conv13, conv21, conv22, conv23, fc1, fc2, fc3, r1, r2, r3, r4]
+    nodes = [inp, outp, conv11, conv12, conv13, conv21, conv22, conv23, conv31, conv32, conv33, conv41, conv42, conv43,
+             conv51, conv52, conv53, fc1, fc2, fc3, r1, r2, r3, r4]
 
     coder = fr.ReversibleGraphNet(nodes, 0, 1)
 

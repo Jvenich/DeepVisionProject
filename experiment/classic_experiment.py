@@ -61,10 +61,6 @@ class classic_experiment:
             self.dataset, self.classes = dl.load_artset()
             self.trainloader, self.testloader = dl.split_dataset(self.dataset, ratio, self.batch_size, pin_memory,
                                                                  drop_last)
-            img, label = next(iter(self.trainloader))
-            print(img.shape)
-            print(label.shape)
-            print(len(self.classes))
         else:
             print("The requested dataset is not implemented yet.")
 

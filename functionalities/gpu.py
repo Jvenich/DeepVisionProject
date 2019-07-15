@@ -8,10 +8,8 @@ def get_device(dev_idx=0):
     :return: device variable used for further training on the GPU
     """
 
-    if torch.cuda.is_available():
-        torch.cuda.set_device(dev_idx)
-        device = 'cuda'
-    else:
-        device = 'cpu'
+    torch.cuda.set_device(dev_idx)
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+   
 
     return device

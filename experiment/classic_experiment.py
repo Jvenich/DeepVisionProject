@@ -74,8 +74,9 @@ class classic_experiment:
         :param loader: pytorch loader for a dataset
         :return: accuracy
         """
-        if self.device != "cuda":
+        if self.device != torch.device("cuda"):
             print("Warning: GPU is not used for this computation")
+            print("device:", self.device)
 
         correct = 0
         total = 0
@@ -109,8 +110,9 @@ class classic_experiment:
             print("Epoch: {}".format(epoch + 1))
             print("Training:")
 
-            if self.device != "cuda":
+            if self.device != torch.device("cuda"):
                 print("Warning: GPU is not used for this computation")
+                print("device:", self.device)
 
             for data in tqdm(self.trainloader):
                 img, labels = data

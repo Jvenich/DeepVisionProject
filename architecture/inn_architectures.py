@@ -55,7 +55,7 @@ def artset_inn_model(img_dims=[3, 224, 224]):
 
     inp = fr.InputNode(*img_dims, name='input')
 
-    r1 = fr.Node([inp.out0], re.haar_multiplex_layer, {}, name='r1')
+    r1 = fr.Node([inp.out0], re.reshape_layer, {'target_dim': (img_dims[0] * 4, img_dims[1] // 2, img_dims[2] // 2)}, name='r1')
 
     conv11 = fr.Node([r1.out0], la.glow_coupling_layer,
                      {'F_class': fu.F_conv, 'F_args': {'channels_hidden': 256}, 'clamp': 1}, name='conv11')
@@ -99,18 +99,17 @@ def artset_inn_model(img_dims=[3, 224, 224]):
 
     r2 = fr.Node([conv43.out0], re.reshape_layer, {'target_dim': (img_dims[0] * img_dims[1] * img_dims[2],)}, name='r2')
 
-    fc = fr.Node([r2.out0], la.glow_coupling_layer,
-                 {'F_class': fu.F_fully_connected, 'F_args': {'internal_size': 128}, 'clamp': 1}, name='fc')
+    fc = fr.Node([r2.out0], la.rev_multiplicative_layer,
+                 {'F_class': fu.F_small_connected, 'F_args': {'internal_size': 128}, 'clamp': 1}, name='fc')
 
 
-    r3 = fr.Node([fc.out0], re.reshape_layer, {'target_dim': (img_dims[0] * 4, img_dims[1] / 2, img_dims[2] / 2)}, name='r3')
+    r3 = fr.Node([fc.out0], re.reshape_layer, {'target_dim': (img_dims[0], img_dims[1], img_dims[2])}, name='r3')
+    
 
-    r4 = fr.Node([r3.out0], re.haar_restore_layer, {}, name='r4')
-
-    outp = fr.OutputNode([r4.out0], name='output')
+    outp = fr.OutputNode([r3.out0], name='output')
 
     nodes = [inp, outp, conv11, conv12, conv13, conv21, conv22, conv23, conv31, conv32, conv33, conv41, conv42, conv43,
-             fc, r1, r2, r3, r4]
+             fc, r1, r2, r3]
 
     coder = fr.ReversibleGraphNet(nodes, 0, 1)
 

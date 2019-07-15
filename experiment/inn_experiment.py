@@ -46,6 +46,8 @@ class inn_experiment:
                                           weight_decay=weight_decay)
         self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=milestones, gamma=0.1)
 
+        print("Device used for further computation is:", self.device)
+
 
     def get_dataset(self, dataset, pin_memory=True, drop_last=True):
         """
@@ -86,12 +88,16 @@ class inn_experiment:
         :param loader: pytorch loader for a dataset
         :return: accuracy
         """
+        if self.device != "cuda":
+            print("Warning: GPU is not used for this computation")
+
         correct = 0
         total = 0
         with torch.no_grad():
             for data in tqdm(loader):
                 images, labels = data
                 images, labels = images.to(self.device), labels.to(self.device)
+                self.model = self.model.to(self.device)
                 outputs = self.model(images)
                 outputs = outputs.view(outputs.size(0), -1)
                 _, predicted = torch.max(outputs[:, :self.num_classes], 1)
@@ -115,8 +121,6 @@ class inn_experiment:
         Train INN model.
         """
 
-        self.train_acc_log = []
-        self.test_acc_log = []
         self.loss_log = []
 
 
@@ -126,12 +130,20 @@ class inn_experiment:
 
             loss = 0
 
+            print()
+            print(80 * '-')
+            print()
+
             print("Epoch: {}".format(epoch + 1))
             print("Training:")
+
+            if self.device != "cuda":
+                print("Warning: GPU is not used for this computation")
 
             for i, data in enumerate(tqdm(self.trainloader), 0):
                 img, labels = data
                 img, labels = img.to(self.device), labels.to(self.device)
+                self.model = self.model.to(self.device)
 
                 self.optimizer.zero_grad()
 
@@ -144,25 +156,25 @@ class inn_experiment:
                 loss += batch_loss
 
 
-            print("Evaluating:")
-            self.model.eval()
-
-            train_acc = self.get_accuracy(self.trainloader)
-            test_acc = self.get_accuracy(self.testloader)
-
-            print("Loss: {:.3f} \t Train_acc: {:.3f} \t Test_acc: {:.3f}".format(loss, train_acc, test_acc))
-
-            self.train_acc_log.append(train_acc)
-            self.test_acc_log.append(test_acc)
+            print("Loss: {:.3f}".format(loss))
             self.loss_log.append(loss)
 
+        print()
+        print(80 * "#")
+        print(80 * "#")
+        print()
 
-        print(80 * "-")
-        print("Final Test Accuracy:", self.test_acc_log[-1])
+        print("Evaluating:")
+        self.model.eval()
+        self.train_acc = self.get_accuracy(self.trainloader)
+        self.test_acc = self.get_accuracy(self.testloader)
+
+        print("Final Train Accuracy:", self.train_acc)
+        print("Final Test Accuracy:", self.test_acc)
 
         fm.save_model(self.model, '{}'.format(self.modelname))
         fm.save_weight(self.model, '{}'.format(self.modelname))
-        fm.save_variable([self.train_acc_log, self.test_acc_log], '{}_acc'.format(self.modelname))
+        fm.save_variable([self.train_acc, self.test_acc], '{}_acc'.format(self.modelname))
         fm.save_variable([self.loss_log], '{}_loss'.format(self.modelname))
 
 
@@ -205,11 +217,11 @@ class inn_experiment:
 
         :return: None
         """
-        self.train_acc_log, self.test_acc_log = fm.load_variable('{}_acc'.format(self.modelname))
+        self.train_acc, self.test_acc = fm.load_variable('{}_acc'.format(self.modelname))
         self.loss_log = fm.load_variable('{}_loss'.format(self.modelname))
 
 
-    def plot_accuracy(self, sub_dim=None, figsize=(15, 10), font_size=24, y_log_scale=False):
+    def print_accuracy(self):
         """
         Plot train and test accuracy during training.
 
@@ -222,9 +234,8 @@ class inn_experiment:
 
         self.load_variables()
 
-        pl.plot([x for x in range(1, self.num_epoch+1)], [self.train_acc_log, self.test_acc_log], 'Epoch', 'Accuracy',
-                ['train', 'test'], "Train and Test Accuracy History {}".format(self.modelname),
-                "train_test_acc_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)
+        print("Final Train Accuracy:", self.train_acc)
+        print("Final Test Accuracy:", self.test_acc)
 
 
     def plot_loss(self, sub_dim=None, figsize=(15, 10), font_size=24, y_log_scale=False):

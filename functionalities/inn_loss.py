@@ -16,6 +16,6 @@ class INN_loss(nn.Module):
         idx = torch.arange(target.size(0), dtype=torch.long)
         binary_label[idx, target] = 1
         l = loss.loss_max_likelihood(lat_img, torch.cat([binary_label,
-                torch.randn(lat_img[:, self.num_classes:].shape).to(self.device)], dim=1), model, self.num_classes)
+                torch.randn(lat_img[:, self.num_classes:].shape).to(self.device)], dim=1), model, self.num_classes, self.sigma)
 
         return l

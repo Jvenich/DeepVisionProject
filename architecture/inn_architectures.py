@@ -4,7 +4,7 @@ from FrEIA.modules import coupling_layers as la
 from FrEIA.modules import reshapes as re
 
 
-def mnist_inn_model(img_dims=[1, 28, 28]):
+def inn_model(img_dims=[1, 28, 28]):
     """
     Return INN model for MNIST.
 

@@ -13,7 +13,7 @@ class inn_experiment:
     """
 
 
-    def __init__(self, num_epoch, batch_size, lr_init, milestones, get_model, modelname, device='cpu',
+    def __init__(self, num_epoch, batch_size, lr_init, milestones, model, modelname, device='cpu',
                  sigma=1, weight_decay=1e-6):
         """
         Init class with pretraining setup.
@@ -22,7 +22,7 @@ class inn_experiment:
         :param batch_size: Batch Size to use during training.
         :param lr_init: Starting learning rate. Will be decrease with adaptive learning.
         :param milestones: list of training epochs at which the learning rate will be reduce
-        :param get_model: function that returns a model for training
+        :param get_model: model for training
         :param modelname: model name under which the model will be saved
         :param device: device on which to do the computation (CPU or CUDA). Please use get_device() to get device
         variable, if using multiple GPU's.
@@ -34,7 +34,7 @@ class inn_experiment:
         self.device = device
         self.sigma = sigma
 
-        self.model = get_model().to(self.device)
+        self.model = model.to(self.device)
         self.init_param()
 
         self.model_params = []

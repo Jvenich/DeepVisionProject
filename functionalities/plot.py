@@ -109,7 +109,6 @@ def imshow(img, figsize=(30, 30), filename=None):
     img = torch.clamp(img, 0, 1)
     img = img.to('cpu')
     npimg = img.numpy()
-    print("npimg", npimg.shape)
     plt.figsize = figsize
     if len(img.shape) == 3:
         plt.imshow(np.transpose(npimg, (1, 2, 0)))

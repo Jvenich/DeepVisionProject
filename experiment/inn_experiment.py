@@ -253,9 +253,8 @@ class inn_experiment:
 
         self.load_variables()
 
-        pl.plot([x for x in range(1, self.num_epoch+1)], [self.tot_loss_log, self.ly_loss_log, self.lz_loss_log,
-                self.lx_loss_log, self.lrec_loss_log], 'Epoch', 'Loss',
-                ['total', 'ly', 'lz', 'lx', 'l_rec'], "Train Loss History {}".format(self.modelname),
+        pl.plot([x for x in range(1, self.num_epoch+1)], self.loss_log, 'Epoch', 'Loss',
+                ['loss'], "Train Loss History {}".format(self.modelname),
                 "train_loss_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)
 
 
@@ -263,7 +262,6 @@ class inn_experiment:
         """
         Generate images based on given label. Only works after INN model was trained on classification.
 
-        :param label: label of class to generate images from
         :param num_img: number of images to generate
         :param row_size: number of images to show in each row
         :param figsize: the size of the generated plot
@@ -275,31 +273,61 @@ class inn_experiment:
         img, _ = next(iter(self.trainloader))
         img = img.to(self.device)
 
-        #img = torch.cat([img[0].unsqueeze(0) for i in range(self.batch_size)])
+
 
         y = self.model(img)
         y = y.view(y.size(0), -1)
 
 
         gauss = torch.randn(y[:, self.num_classes:].shape).to(self.device)
-        #gauss = y[:, self.num_classes:]
         y = torch.cat([y[0].unsqueeze(0) for i in range(self.batch_size)])
 
-        #lat_img = torch.cat([y[:, :self.num_classes], gauss], dim=1).to(self.device)
         lat_img = torch.cat([y[:, :self.num_classes], gauss], dim=1).to(self.device)
         lat_img = lat_img.view(self.lat_shape)
         gen_img = self.model(lat_img, rev=True)
 
-        print(img[0].shape)
+        print("Original Input Image:")
         pl.imshow(img[0][0].detach())
 
-        pl.imshow(gen_img[0][0].detach())
-
-        print(gen_img[:num_img].shape)
-        print(torchvision.utils.make_grid(gen_img[:num_img].detach(), row_size).shape)
+        print("Generated Images:")
         pl.imshow(torchvision.utils.make_grid(gen_img[:num_img].detach(), row_size), figsize,
-                  self.modelname + "generate".format())
+                  self.modelname + "_generate")
 
+
+    def metameric_sampling(self, num_img=100, row_size=10, figsize=(30, 30)):
+        """
+        Metameric sampling according to https://arxiv.org/pdf/1811.00401.pdf
+
+        :param num_img: number of images to generate
+        :param row_size: number of images to show in each row
+        :param figsize: the size of the generated plot
+        :return: None
+        """
+
+        self.load_model()
+
+        img, _ = next(iter(self.trainloader))
+        img = img.to(self.device)
+
+        lat = self.model(img)
+        lat = lat.view(lat.size(0), -1)
+
+        y = torch.cat([lat[0].unsqueeze(0) for i in range(self.batch_size)])
+        z = lat[:, self.num_classes:]
+
+        lat_img = torch.cat([y[:, :self.num_classes], z], dim=1).to(self.device)
+        lat_img = lat_img.view(self.lat_shape)
+        gen_img = self.model(lat_img, rev=True)
+
+        print("Original Input Image:")
+        pl.imshow(img[0][0].detach())
+
+        print("Images to sample z from:")
+        pl.imshow(torchvision.utils.make_grid(img[:num_img].detach(), row_size), figsize)
+
+        print("Generated Images from metameric sampling:")
+        pl.imshow(torchvision.utils.make_grid(gen_img[:num_img].detach(), row_size), figsize,
+                  self.modelname + "_metameric_sampling")
 
 
 

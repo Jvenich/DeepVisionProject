@@ -10,12 +10,16 @@ class INN_loss(nn.Module):
         self.sigma = sigma
         self.device = device
 
+        self.CE = nn.CrossEntropyLoss()
+
 
     def forward(self, lat_img, target, model):
-        binary_label = lat_img.new_zeros(lat_img.size(0), self.num_classes)
-        idx = torch.arange(target.size(0), dtype=torch.long)
-        binary_label[idx, target] = 1
-        l = loss.loss_max_likelihood(lat_img, torch.cat([binary_label,
-                torch.randn(lat_img[:, self.num_classes:].shape).to(self.device)], dim=1), model, self.num_classes, self.sigma)
+        #binary_label = lat_img.new_zeros(lat_img.size(0), self.num_classes)
+        #idx = torch.arange(target.size(0), dtype=torch.long)
+        #binary_label[idx, target] = 1
+        #l = loss.loss_max_likelihood(lat_img, torch.cat([binary_label,
+        #        torch.randn(lat_img[:, self.num_classes:].shape).to(self.device)], dim=1), model, self.num_classes, self.sigma)
+
+        l = self.CE(lat_img[:, :self.num_classes], target)
 
         return l

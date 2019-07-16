@@ -85,7 +85,7 @@ def load_model(filename, folder=None):
     else:
         path = os.path.join("./models", filename)
 
-    model = torch.load(path)
+    model = torch.load(path, map_location='cuda:0')
 
     return model
 

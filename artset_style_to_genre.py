@@ -25,8 +25,8 @@ for folder in all_folders:
         path_to = os.path.join('./datasets/artset_style', class_label, image)
 
         copyfile(path_from, path_to)
-        print('Moved {} to {}'.format(image, path_to))
+        print('Copy {} to {}'.format(image, path_to))
         co += 1
 
-print('Moved {} images.'.format(co))
+print('Copied {} images.'.format(co))
 

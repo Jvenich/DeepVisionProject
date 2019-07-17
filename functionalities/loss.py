@@ -43,3 +43,35 @@ def loss_max_likelihood(x, y, model, num_classses, sigma):
                      + 0.5 * torch.sum(x[:, num_classses:]**2, 1) - jac)
 
     return torch.mean(neg_log_like)
+
+
+def loss_forward_mmd(out, y, num_classes):
+    # Shorten output, and remove gradients wrt y, for latent loss
+    output_block_grad = torch.cat((out[:, :num_classes],
+                                   out[:, num_classes:].data), dim=1)
+    y_short = torch.cat((y[:, :num_classes], y[:, num_classes:]), dim=1)
+
+    l_forw_fit = 1. * l2_loss(out[:, :num_classes], y[:, :num_classes])
+    l_forw_mmd = 50.  * torch.mean(MMD_multiscale(output_block_grad, y_short))
+
+    return l_forw_fit, l_forw_mmd
+
+def loss_backward_mmd(x, y, model):
+    x_samples = model(y, rev=True)
+    MMD = MMD_multiscale(x, x_samples)
+    #if c.mmd_back_weighted:
+     #   MMD *= torch.exp(- 0.5 / c.y_uncertainty_sigma**2 * losses.l2_dist_matrix(y, y))
+    return 500. * torch.mean(MMD)
+
+def loss_reconstruction(out_y, y, x, model, num_classes, add_z_noise, add_y_noise, ndim_pad_zy=False):
+    cat_inputs = [out_y[:, num_classes:] + add_z_noise * noise_batch(len(out_y) - num_classes)]
+   # if ndim_pad_zy:
+   #     cat_inputs.append(out_y[:, c.ndim_z:-c.ndim_y] + c.add_pad_noise * noise_batch(c.ndim_pad_zy))
+    cat_inputs.append(out_y[:, :num_classes] + add_y_noise * noise_batch(num_classes))
+
+    x_reconstructed = model(torch.cat(cat_inputs, 1), rev=True)
+    return 1. * l2_loss(x_reconstructed, x)
+
+
+def noise_batch(batch_size, ndim, device):
+    return torch.randn(batch_size, ndim).to(device)

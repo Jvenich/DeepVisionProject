@@ -14,7 +14,7 @@ class inn_experiment:
 
 
     def __init__(self, num_epoch, batch_size, lr_init, milestones, model, modelname, device='cpu',
-                 sigma=1, weight_decay=1e-6, likelihood=False, classification=False):
+                 sigma=1, weight_decay=1e-6, use_genre=True, subset=False, likelihood=False, classification=False, zero_pad=None, conditional=False):
         """
         Init class with pretraining setup.
 
@@ -33,8 +33,12 @@ class inn_experiment:
         self.modelname = modelname
         self.device = device
         self.sigma = sigma
+        self.use_genre = use_genre
+        self.subset = subset
         self.likelihood = likelihood
         self.classification = classification
+        self.zero_pad = zero_pad
+        self.conditional = conditional
 
         self.model = model.to(self.device)
         self.init_param()
@@ -68,7 +72,7 @@ class inn_experiment:
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
         elif dataset == "artset":
-            self.dataset, self.classes = dl.load_artset()
+            self.dataset, self.classes = dl.load_artset(self.use_genre, self.subset)
             self.trainloader, self.testloader = dl.split_dataset(self.dataset, 0.2, self.batch_size, pin_memory,
                                                                  drop_last)
         else:
@@ -80,7 +84,7 @@ class inn_experiment:
         self.lat_shape = lat_img.shape
 
         self.num_classes = len(self.classes)
-        self.criterion = il.INN_loss(self.num_classes, self.sigma, self.device, self.batch_size, self.likelihood, self.classification)
+        self.criterion = il.INN_loss(self.num_classes, self.sigma, self.device, self.batch_size, self.likelihood, self.classification, self.zero_pad, self.conditional)
 
 
     def get_accuracy(self, loader):
@@ -162,6 +166,9 @@ class inn_experiment:
 
             print("Loss: {:.3f}".format(loss))
             self.loss_log.append(loss)
+            
+            fm.save_model(self.model, '{}_{}'.format(self.modelname, epoch))
+            fm.save_weight(self.model, '{}_{}'.format(self.modelname, epoch))
 
         print()
         print(80 * "#")
@@ -197,22 +204,29 @@ class inn_experiment:
                     param.data.fill_(0.)
 
 
-    def load_model(self):
+    def load_model(self, epoch=None):
         """
         Load pre-trained model based on modelname.
 
         :return: None
         """
-        self.model = fm.load_model('{}'.format(self.modelname))
+        if epoch is None:
+            self.model = fm.load_model('{}'.format(self.modelname))
+        else:
+            self.model = fm.load_model('{}_{}'.format(self.modelname, epoch))
 
 
-    def load_weights(self):
+    def load_weights(self, epoch=None):
         """
         Load pre-trained weights based on modelname.
 
         :return: None
         """
-        self.model = fm.load_weight(self.model, '{}'.format(self.modelname))
+        if epoch is None:
+            self.model = fm.load_weight(self.model, '{}'.format(self.modelname))
+        else:
+            self.model = fm.load_weight(self.model, '{}_{}'.format(self.modelname, epoch))
+
 
 
     def load_variables(self):
@@ -260,7 +274,7 @@ class inn_experiment:
                 "train_loss_{}".format(self.modelname), sub_dim, figsize, font_size, y_log_scale)
 
 
-    def generate(self, z_dim, num_img=100, row_size=10, figsize=(30, 30)):
+    def generate(self, num_img=100, row_size=10, figsize=(30, 30), target=0):
         """
         Generate images based on given label. Only works after INN model was trained on classification.
 
@@ -286,11 +300,17 @@ class inn_experiment:
 
         lat_img = torch.cat([y[:, :self.num_classes], gauss], dim=1).to(self.device)
 
-        #binary_label = lat_img.new_zeros(lat_img.size(0), self.num_classes)
-        #idx = torch.arange(self.batch_size, dtype=torch.long)
-        #binary_label[idx, target] = 1
 
-        lat_img = torch.cat([lat_img[:, : self.num_classes + z_dim], torch.zeros(self.batch_size ,28 * 28 - self.num_classes - z_dim).cuda()], dim=1)
+        if self.zero_pad:
+            if self.conditional:
+                binary_label = lat_img.new_zeros(lat_img.size(0), self.num_classes)
+                idx = torch.arange(self.batch_size, dtype=torch.long)
+                binary_label[idx, target] = 1
+                lat_img = torch.cat([lat_img[:, : self.num_classes + self.zero_pad], binary_label, torch.zeros(self.batch_size, 28 * 28 - self.num_classes - self.zero_pad - 10).cuda()], dim=1)
+            else:
+                lat_img = torch.cat([lat_img[:, : self.num_classes + self.zero_pad], torch.zeros(self.batch_size ,28 * 28 - self.num_classes - self.zero_pad).cuda()], dim=1)
+
+                
         lat_img = lat_img.view(self.lat_shape)
         gen_img = self.model(lat_img, rev=True)
 

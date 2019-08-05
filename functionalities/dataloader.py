@@ -44,7 +44,7 @@ def load_cifar():
     return trainset, testset, classes
 
 
-def load_artset():
+def load_artset(use_genre=True, subset=False):
     """
     Before this functions works, do the following steps:
         1) Download Painter by Numbers dataset from Kaggle: https://www.kaggle.com/c/painter-by-numbers/data
@@ -62,8 +62,12 @@ def load_artset():
 
     :return: dataset, classes
     """
-
-    image_path = './datasets/artset/'
+    if use_genre:
+        image_path = './datasets/artset_genre/'
+    elif subset:
+        image_path = './datasets/artset_subset/'
+    else:
+        image_path = './datasets/artset/'
 
     transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
 

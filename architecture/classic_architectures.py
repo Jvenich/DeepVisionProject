@@ -43,14 +43,14 @@ def get_alexnet(num_classes=136):
     return alexnet
 
 
-def get_vgg16(num_classes=136):
+def get_vgg16(num_classes=136, pretrained=False):
     """
 
     :param num_classes:
     :return:
     """
 
-    vgg16 = models.vgg16()
+    vgg16 = models.vgg16(pretrained=pretrained)
     vgg16.classifier[6] = nn.Linear(4096, num_classes)
 
     return vgg16

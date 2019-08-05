@@ -12,7 +12,7 @@ class classic_experiment:
 
 
     def __init__(self, num_epoch, batch_size, lr_init, milestones, model, modelname, device='cpu',
-                 weight_decay=1e-5):
+                 weight_decay=1e-5, use_genre=True, pretrained=False, subset=False):
         """
         Init class with pretraining setup.
 
@@ -31,6 +31,9 @@ class classic_experiment:
         self.batch_size = batch_size
         self.modelname = modelname
         self.device = device
+        self.use_genre = use_genre
+        self.pretrained = pretrained
+        self.subset = subset
 
         self.model = model.to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr_init, weight_decay=weight_decay)
@@ -60,7 +63,7 @@ class classic_experiment:
             self.trainloader = dl.get_loader(self.trainset, self.batch_size, pin_memory, drop_last)
             self.testloader = dl.get_loader(self.testset, self.batch_size, pin_memory, drop_last)
         elif dataset == "artset":
-            self.dataset, self.classes = dl.load_artset()
+            self.dataset, self.classes = dl.load_artset(self.use_genre, self.subset)
             self.trainloader, self.testloader = dl.split_dataset(self.dataset, ratio, self.batch_size, pin_memory,
                                                                  drop_last)
         else:
@@ -106,6 +109,16 @@ class classic_experiment:
             print()
             print(80 * '-')
             print()
+            
+            if self.pretrained and epoch == 0:
+                for param in self.model.parameters():
+                    param.requires_grad = False
+                for param in self.model.classifier[6].parameters():
+                    param.requires_grad = True
+                    
+            if self.pretrained and epoch == 5:
+                for param in self.model.parameters():
+                    param.requires_grad = True
 
             print("Epoch: {}".format(epoch + 1))
             print("Training:")
@@ -126,6 +139,9 @@ class classic_experiment:
 
             print('loss: {:.3f}'.format(loss.data.item()))
             self.loss_log.append(loss)
+            
+            fm.save_model(self.model, '{}_{}'.format(self.modelname, epoch))
+            fm.save_weight(self.model, '{}_{}'.format(self.modelname, epoch))
 
         print()
         print(80 * "#")
@@ -146,22 +162,29 @@ class classic_experiment:
         fm.save_variable([self.loss_log], '{}_loss'.format(self.modelname))
 
 
-    def load_model(self):
+    def load_model(self, epoch=None):
         """
         Load pre-trained model based on modelname.
 
         :return: None
         """
-        self.model = fm.load_model('{}'.format(self.modelname))
+        if epoch is None:
+            self.model = fm.load_model('{}'.format(self.modelname))
+        else:
+            self.model = fm.load_model('{}_{}'.format(self.modelname, epoch))
 
 
-    def load_weights(self):
+    def load_weights(self, epoch=None):
         """
         Load pre-trained weights based on modelname.
 
         :return: None
         """
-        self.model = fm.load_weight(self.model, '{}'.format(self.modelname))
+        if epoch is None:
+            self.model = fm.load_weight(self.model, '{}'.format(self.modelname))
+        else:
+            self.model = fm.load_weight(self.model, '{}_{}'.format(self.modelname, epoch))
+
 
 
     def load_variables(self):

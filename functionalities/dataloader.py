@@ -53,9 +53,11 @@ def load_artset(use_genre=True, subset=False):
         replacements_for_corrupted_files.zip
         4) Navigate to extracted folder replacements_for_corrupted_files/train and copy all images in there to the
         extracted train folder. Accept replacement of the copied images, when asked by your operating system.
-        5) Copy train folder and train_info.csv to this project folder ../DeepVision Project/datasets/artset
-        6) Navigate to DeepVision Project folder and run python prepare_artset.py
-        7) Delete the original train folder and the train_info.csv file
+        5) Copy train folder to this project folder ../DeepVisionProject/datasets/artset and train_info.csv to this
+        project folder ../DeepVisionProject
+        6) Navigate to DeepVisionProject folder and run python prepare_artset.py
+        7) Delete the original train folder
+        8) Navigate to DeepVisionProject folder and run python artset_style_to_genre.py
 
     After the above steps have been performed. This function returns the dataset of Painter by Numbers containing the
     images and labels. Additionally, a dict mapping labels to classes will be returned.
